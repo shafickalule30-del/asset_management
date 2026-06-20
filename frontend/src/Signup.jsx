@@ -18,7 +18,7 @@ function Signup() {
 
     try {
       // Sending registration payload to your Node server on Port 5000
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch('https://asset-management-55t5.onrender.com', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
