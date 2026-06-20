@@ -14,11 +14,11 @@ function Signup() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
-    loading ? null : setLoading(true);
+    setLoading(true);
 
     try {
-      // 🚀 FIXED: Wrapped the URL properly back inside the fetch API command
-      const response = await fetch("https://asset-management-55t5.onrender.com/api/auth/signup", {
+      // 🚀 FIXED: Absolute live backend path explicitly sending a POST request
+      const response = await fetch("https://asset-management-1-dyl0.onrender.com/api/auth/signup", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -30,7 +30,6 @@ function Signup() {
 
       if (response.ok) {
         alert("🎉 Account created successfully! Redirecting to Login...");
-        // This line forces the frontend to jump straight to the login screen
         navigate('/login');
       } else {
         // Capture and display validation messages from your MongoDB backend
@@ -38,7 +37,7 @@ function Signup() {
       }
     } catch (error) {
       console.error("Signup error:", error);
-      setErrorMessage("Cannot reach the backend server. Please try again.");
+      setErrorMessage("Cannot reach the backend server. Please check your connection.");
     } finally {
       setLoading(false);
     }
