@@ -20,9 +20,7 @@ function Signup() {
       // Sending registration payload to your Node server on Port 5000
        // Current Broken Code:
 // Fixed Code (Adjust based on your exact backend folder routes):
-const API_URL = "https://asset-management-55t5.onrender.com/api/auth/signup"; 
-// OR if you use a base URL configuration:
-const API_URL = "https://asset-management-55t5.onrender.com/api";
+const API_URL = "https://asset-management-55t5.onrender.com/api/auth/signup";
         headers: {
           'Content-Type': 'application/json',
         },
