@@ -224,7 +224,7 @@ function Home() {
 
     try {
       // Send to admin panel for approval
-      const res = await fetch('http://localhost:3000/api/submit-deposit', {
+      const res = await fetch('http:///api/submit-deposit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

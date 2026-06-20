@@ -50,8 +50,8 @@ function Register() {
     }
 
     try {
-      // After:
-const response = await fetch('https://asset-management-55t5.onrender.com/api/assets')
+      // 🚀 FIXED: Pointing directly to your active live backend URL
+      const response = await fetch('https://asset-management-55t5.onrender.com/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -75,7 +75,7 @@ const response = await fetch('https://asset-management-55t5.onrender.com/api/ass
       }
     } catch (err) {
       console.error('Registration routing error:', err);
-      setError('❌ Connection timeout. Is your backend server.js active on port 5000?');
+      setError('❌ Connection timeout. Cannot reach the cloud API endpoint.');
     } finally {
       setLoading(false);
     }
