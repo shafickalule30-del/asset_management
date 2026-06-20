@@ -18,8 +18,11 @@ function Signup() {
 
     try {
       // Sending registration payload to your Node server on Port 5000
-      const response = await fetch('https://asset-management-55t5.onrender.com', {
-        method: 'POST',
+       // Current Broken Code:
+// Fixed Code (Adjust based on your exact backend folder routes):
+const API_URL = "https://asset-management-55t5.onrender.com/api/auth/signup"; 
+// OR if you use a base URL configuration:
+const API_URL = "https://asset-management-55t5.onrender.com/api";
         headers: {
           'Content-Type': 'application/json',
         },
