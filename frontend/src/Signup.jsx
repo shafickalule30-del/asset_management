@@ -18,7 +18,7 @@ function Signup() {
 
     try {
       // 🚀 FIXED: Absolute live backend path explicitly sending a POST request
-      const response = await fetch("https://asset-management-1-dyl0.onrender.com/api/auth/signup", {
+      const response = await fetch("https://asset-management-55t5.onrender.com/api/auth/signup", {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
