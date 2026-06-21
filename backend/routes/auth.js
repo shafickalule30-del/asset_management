@@ -3,56 +3,64 @@ const bcrypt = require('bcryptjs'); // For password hashing
 const jwt = require('jsonwebtoken'); // For session tokens
 
 // =========================================================
-// 1. TELEPHONE REGISTER CONTROLLER
+// 1. SYSTEM REGISTER CONTROLLER (Username & Email)
 // =========================================================
 exports.register = async (req, res) => {
     try {
-        const { phoneNumber, password } = req.body;
+        const { username, email, password } = req.body;
 
-        if (!phoneNumber || !password) {
-            return res.status(400).json({ message: "Please fill out all technical input markers." });
+        // Validate all required fields are present
+        if (!username || !email || !password) {
+            return res.status(400).json({ message: "Please fill out all technical input markers (Username, Email, Password)." });
         }
 
-        // Check if user already exists
-        const userExists = await User.findOne({ phoneNumber });
-        if (userExists) {
-            return res.status(400).json({ message: "This phone number is already registered." });
+        // Check if a user with this email already exists
+        const emailExists = await User.findOne({ email });
+        if (emailExists) {
+            return res.status(400).json({ message: "This email address is already registered." });
+        }
+
+        // Check if a user with this username already exists
+        const usernameExists = await User.findOne({ username });
+        if (usernameExists) {
+            return res.status(400).json({ message: "This username is already taken." });
         }
 
         // Securely hash the password before saving
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Create and save pure phone-centric user
+        // Create and save new machine asset-management user profile
         const newUser = new User({
-            phoneNumber,
+            username,
+            email,
             password: hashedPassword
         });
 
         await newUser.save();
-        return res.status(201).json({ message: "Account created successfully using phone number!" });
+        return res.status(201).json({ message: "Account created successfully!" });
 
     } catch (error) {
-        console.error(error);
+        console.error("Backend Register Error:", error);
         return res.status(500).json({ message: "Server database connection error during registration." });
     }
 };
 
 // =========================================================
-// 2. TELEPHONE SIGN IN CONTROLLER
+// 2. SYSTEM SIGN IN CONTROLLER (Email & Password)
 // =========================================================
 exports.login = async (req, res) => {
     try {
-        const { phoneNumber, password } = req.body;
+        const { email, password } = req.body;
 
-        if (!phoneNumber || !password) {
-            return res.status(400).json({ message: "All input fields are required." });
+        if (!email || !password) {
+            return res.status(400).json({ message: "Email and password are required fields." });
         }
 
-        // Query database directly matching the phone layout
-        const user = await User.findOne({ phoneNumber });
+        // Query database directly matching the email layout
+        const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({ message: "Phone number not found." });
+            return res.status(400).json({ message: "Invalid email or credentials." });
         }
 
         // Validate the password
@@ -61,17 +69,18 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: "Incorrect password." });
         }
 
-        // Generate session JWT token
-        const token = jwt.sign({ id: user._id }, 'YOUR_JWT_SECRET', { expiresIn: '1d' });
+        // Generate session JWT token (Use your actual environment secret variable here)
+        const jwtSecret = process.env.JWT_SECRET || 'YOUR_JWT_SECRET';
+        const token = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '1d' });
 
         return res.status(200).json({
             token,
-            user: { id: user._id, phoneNumber: user.phoneNumber },
+            user: { id: user._id, username: user.username, email: user.email },
             message: "Access Granted!"
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Backend Login Error:", error);
         return res.status(500).json({ message: "Login communication failed." });
     }
-};
+};;
