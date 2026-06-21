@@ -14,7 +14,7 @@ function Login() {
     setLoading(true);
 
     try {
-      // 🚀 Points directly to your true live server at the correct /login route
+      // 🚀 Hits your live backend server at the correct /login endpoint
       const response = await fetch('https://asset-management-55t5.onrender.com/api/auth/login', {
         method: 'POST',
         headers: {
@@ -23,13 +23,15 @@ function Login() {
         body: JSON.stringify({ email, password }),
       });
 
-      const responseText = await response.text();
-      const data = responseText ? JSON.parse(responseText) : {};
+      const textData = await response.text();
+      const data = textData ? JSON.parse(textData) : {};
 
       if (response.ok) {
         localStorage.setItem('token', data.token);
         alert('🔑 Access Granted! Welcome to the Terminal Dashboard.');
-        navigate('/dashboard'); 
+
+        // 🚀 SUCCESS ROUTE FIX: This navigates directly to the core home directory view layout
+        navigate('/');
       } else {
         setError(data.message || 'Authentication rejected.');
       }
@@ -42,15 +44,15 @@ function Login() {
   };
 
   return (
-    <div style={{ 
-      backgroundColor: '#000000', minHeight: '100vh', display: 'flex', 
+    <div style={{
+      backgroundColor: '#000000', minHeight: '100vh', display: 'flex',
       justifyContent: 'center', alignItems: 'center', fontFamily: 'sans-serif', padding: '20px'
     }}>
-      <div style={{ 
-        width: '100%', maxWidth: '400px', backgroundColor: '#0a0a0a', 
+      <div style={{
+        width: '100%', maxWidth: '400px', backgroundColor: '#0a0a0a',
         border: '2px solid #222', borderRadius: '12px', padding: '30px'
       }}>
-        
+
         <div style={{ textAlign: 'center', marginBottom: '25px' }}>
           <h2 style={{ color: '#00FF66', margin: '0 0 8px 0', fontSize: '24px', fontWeight: 'bold' }}>
             TERMINAL LOGIN
@@ -61,8 +63,8 @@ function Login() {
         </div>
 
         {error && (
-          <div style={{ 
-            backgroundColor: 'rgba(255, 68, 68, 0.1)', border: '1px solid #ff4444', 
+          <div style={{
+            backgroundColor: 'rgba(255, 68, 68, 0.1)', border: '1px solid #ff4444',
             borderRadius: '6px', padding: '10px', color: '#ff4444', fontSize: '13px', marginBottom: '20px', textAlign: 'center'
           }}>
             {error}
@@ -74,8 +76,8 @@ function Login() {
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
               EMAIL ADDRESS
             </label>
-            <input 
-              type="email" 
+            <input
+              type="email"
               required
               placeholder="operator@domain.com"
               value={email}
@@ -88,8 +90,8 @@ function Login() {
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
               PASSWORD
             </label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               required
               placeholder="••••••••"
               value={password}
@@ -98,11 +100,11 @@ function Login() {
             />
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading}
-            style={{ 
-              width: '100%', backgroundColor: '#00FF66', color: '#000', border: 'none', 
+            style={{
+              width: '100%', backgroundColor: '#00FF66', color: '#000', border: 'none',
               padding: '14px', borderRadius: '6px', fontWeight: 'bold', cursor: loading ? 'default' : 'pointer', marginTop: '10px'
             }}
           >
@@ -112,7 +114,7 @@ function Login() {
 
         <div style={{ marginTop: '25px', textAlign: 'center', fontSize: '13px' }}>
           <span style={{ color: '#555' }}>Need a system key profile? </span>
-          <Link to="/signup" style={{ color: '#00FF66', textDecoration: 'none', fontWeight: 'bold' }}>
+          <Link to="/register" style={{ color: '#00FF66', textDecoration: 'none', fontWeight: 'bold' }}>
             Register here
           </Link>
         </div>
