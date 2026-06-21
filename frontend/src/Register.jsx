@@ -6,7 +6,7 @@ function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
+  
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ function Register() {
     }
 
     try {
-      // Sending updated payload structure: username, email, & password
+      // 🚀 Hits your live backend server at the correct /register endpoint
       const response = await fetch('https://asset-management-55t5.onrender.com/api/auth/register', {
         method: 'POST',
         headers: {
@@ -36,13 +36,13 @@ function Register() {
         }),
       });
 
-      // Avoid syntax parsing errors if response body is completely empty
+      // Defensive layout parsing to keep UI stable if backend responds unexpectedly
       const textData = await response.text();
       const data = textData ? JSON.parse(textData) : {};
 
       if (response.ok) {
-        alert('🎉 Account Created Successfully! Directing to login...');
-        navigate('/login');
+        alert('🎉 Account Created Successfully! Directing to System Login...');
+        navigate('/login'); 
       } else {
         setError(data.message || 'Registration failed processing profile.');
       }
@@ -55,15 +55,16 @@ function Register() {
   };
 
   return (
-    <div style={{
-      backgroundColor: '#000000', minHeight: '100vh', display: 'flex',
+    <div style={{ 
+      backgroundColor: '#000000', minHeight: '100vh', display: 'flex', 
       justifyContent: 'center', alignItems: 'center', fontFamily: 'sans-serif', padding: '20px'
     }}>
-      <div style={{
-        width: '100%', maxWidth: '400px', backgroundColor: '#0a0a0a',
-        border: '2px solid #222', borderRadius: '12px', padding: '30px'
+      <div style={{ 
+        width: '100%', maxWidth: '400px', backgroundColor: '#0a0a0a', 
+        border: '2px solid #00FF66', borderRadius: '12px', padding: '30px',
+        boxShadow: '0px 0px 15px rgba(0, 255, 102, 0.2)'
       }}>
-
+        
         <div style={{ textAlign: 'center', marginBottom: '25px' }}>
           <h2 style={{ color: '#00FF66', margin: '0 0 8px 0', fontSize: '24px', fontWeight: 'bold' }}>
             CREATE TERMINAL
@@ -74,8 +75,8 @@ function Register() {
         </div>
 
         {error && (
-          <div style={{
-            backgroundColor: 'rgba(255, 68, 68, 0.1)', border: '1px solid #ff4444',
+          <div style={{ 
+            backgroundColor: 'rgba(255, 68, 68, 0.1)', border: '1px solid #ff4444', 
             borderRadius: '6px', padding: '10px', color: '#ff4444', fontSize: '13px', marginBottom: '20px', textAlign: 'center'
           }}>
             {error}
@@ -87,8 +88,8 @@ function Register() {
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
               USERNAME
             </label>
-            <input
-              type="text"
+            <input 
+              type="text" 
               required
               placeholder="e.g. operator1"
               value={username}
@@ -101,8 +102,8 @@ function Register() {
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
               EMAIL ADDRESS
             </label>
-            <input
-              type="email"
+            <input 
+              type="email" 
               required
               placeholder="operator@domain.com"
               value={email}
@@ -115,8 +116,8 @@ function Register() {
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
               ACCESS PASSWORD
             </label>
-            <input
-              type="password"
+            <input 
+              type="password" 
               required
               placeholder="••••••••"
               value={password}
@@ -129,8 +130,8 @@ function Register() {
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
               CONFIRM PASSWORD
             </label>
-            <input
-              type="password"
+            <input 
+              type="password" 
               required
               placeholder="••••••••"
               value={confirmPassword}
@@ -139,11 +140,11 @@ function Register() {
             />
           </div>
 
-          <button
-            type="submit"
+          <button 
+            type="submit" 
             disabled={loading}
-            style={{
-              width: '100%', backgroundColor: '#00FF66', color: '#000', border: 'none',
+            style={{ 
+              width: '100%', backgroundColor: '#00FF66', color: '#000', border: 'none', 
               padding: '14px', borderRadius: '6px', fontWeight: 'bold', cursor: loading ? 'default' : 'pointer', marginTop: '10px'
             }}
           >
