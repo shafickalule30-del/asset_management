@@ -14,6 +14,7 @@ function Login() {
     setLoading(true);
 
     try {
+      // 🚀 Points directly to your true live server at the correct /login route
       const response = await fetch('https://asset-management-55t5.onrender.com/api/auth/login', {
         method: 'POST',
         headers: {
@@ -22,8 +23,8 @@ function Login() {
         body: JSON.stringify({ email, password }),
       });
 
-      const textData = await response.text();
-      const data = textData ? JSON.parse(textData) : {};
+      const responseText = await response.text();
+      const data = responseText ? JSON.parse(responseText) : {};
 
       if (response.ok) {
         localStorage.setItem('token', data.token);
@@ -111,7 +112,7 @@ function Login() {
 
         <div style={{ marginTop: '25px', textAlign: 'center', fontSize: '13px' }}>
           <span style={{ color: '#555' }}>Need a system key profile? </span>
-          <Link to="/register" style={{ color: '#00FF66', textDecoration: 'none', fontWeight: 'bold' }}>
+          <Link to="/signup" style={{ color: '#00FF66', textDecoration: 'none', fontWeight: 'bold' }}>
             Register here
           </Link>
         </div>
