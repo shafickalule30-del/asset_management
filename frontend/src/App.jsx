@@ -1,7 +1,7 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './components/Login';       // Adjust path if your folder layout is different
-import Register from './components/Register'; // Adjust path if your folder layout is different
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import Login from './Login';       // Fixed: Imports directly from the src folder
+import Register from './Register'; // Fixed: Imports directly from the src folder
 
 // =========================================================
 // 1. PROTECTED ROUTE MIDDLEWARE COMPONENT
@@ -22,7 +22,6 @@ const ProtectedRoute = ({ children }) => {
 // =========================================================
 // 2. TEMPORARY HOMEPAGE DASHBOARD COMPONENT
 // =========================================================
-// (Replace this placeholder with your actual Dashboard/Home component if it's in another file)
 function HomeDashboard() {
   const navigate = useNavigate();
 
@@ -78,8 +77,5 @@ function App() {
     </Router>
   );
 }
-
-// Helper hook to support structural inline component triggers
-import { useNavigate } from 'react-router-dom';
 
 export default App;
