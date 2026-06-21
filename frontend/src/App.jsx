@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import Login from './Login';       
-import Register from './Register'; 
+import Login from './Login';
+import Register from './Register';
 
 // =========================================================
 // 1. AUTHENTICATION GUARD MIDDLEWARE
@@ -44,12 +44,12 @@ function Dashboard() {
       <div style={{ border: '2px solid #00FF66', padding: '40px', borderRadius: '12px', backgroundColor: '#0a0a0a', textAlign: 'center', maxWidth: '500px', width: '100%', boxShadow: '0px 0px 20px rgba(0, 255, 102, 0.1)' }}>
         <h1 style={{ color: '#00FF66', marginBottom: '10px', fontSize: '28px', fontWeight: 'bold' }}>SYSTEM DASHBOARD</h1>
         <p style={{ color: '#666', marginBottom: '30px', fontSize: '14px' }}>Asset Management Core Terminal</p>
-        
+
         <div style={{ padding: '20px', backgroundColor: '#111', borderRadius: '8px', border: '1px solid #222', marginBottom: '30px', textAlign: 'left' }}>
           <span style={{ color: '#00FF66', fontWeight: 'bold' }}>●</span> <span style={{ color: '#aaa', fontSize: '13px' }}>Database State: Connected</span>
         </div>
 
-        <button 
+        <button
           onClick={handleLogout}
           style={{ backgroundColor: '#ff4444', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', width: '100%', transition: 'background 0.2s' }}
         >
@@ -67,33 +67,33 @@ function App() {
   return (
     <Router>
       <Routes>
-        
+
         {/* 🔓 Public Gateways (Guarded against signed-in users) */}
-        <Route 
-          path="/login" 
+        <Route
+          path="/login"
           element={
             <PublicRoute>
               <Login />
             </PublicRoute>
-          } 
+          }
         />
-        <Route 
-          path="/register" 
+        <Route
+          path="/register"
           element={
             <PublicRoute>
               <Register />
             </PublicRoute>
-          } 
+          }
         />
 
         {/* 🛡️ Protected Internal Terminals */}
-        <Route 
-          path="/dashboard" 
+        <Route
+          path="/dashboard"
           element={
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
-          } 
+          }
         />
 
         {/* 🔄 Fallback Redirect Layer */}
