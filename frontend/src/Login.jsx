@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
 function Login() {
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,22 +14,21 @@ function Login() {
     setLoading(true);
 
     try {
-      // Points to live backend /login endpoint
       const response = await fetch('https://asset-management-55t5.onrender.com/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ phoneNumber, password }),
+        body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const textData = await response.text();
+      const data = textData ? JSON.parse(textData) : {};
 
       if (response.ok) {
-        // Secure token parameters in local storage session
         localStorage.setItem('token', data.token);
         alert('🔑 Access Granted! Welcome to the Terminal Dashboard.');
-        navigate('/dashboard'); // Change to your primary protected root route layout
+        navigate('/dashboard'); 
       } else {
         setError(data.message || 'Authentication rejected.');
       }
@@ -56,7 +55,7 @@ function Login() {
             TERMINAL LOGIN
           </h2>
           <p style={{ color: '#666', margin: 0, fontSize: '13px' }}>
-            Input phone access credentials
+            Input terminal access credentials
           </p>
         </div>
 
@@ -72,14 +71,14 @@ function Login() {
         <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div>
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
-              PHONE NUMBER
+              EMAIL ADDRESS
             </label>
             <input 
-              type="text" 
+              type="email" 
               required
-              placeholder="e.g. 2567..."
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="operator@domain.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               style={{ width: '100%', padding: '12px', backgroundColor: '#111', border: '1px solid #222', borderRadius: '6px', color: '#fff', boxSizing: 'border-box' }}
             />
           </div>
