@@ -1,32 +1,85 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Signup from './Signup';
-import Login from './Login';
-import Home from './Home'; // This points to your main dashboard page
+import Login from './components/Login';       // Adjust path if your folder layout is different
+import Register from './components/Register'; // Adjust path if your folder layout is different
 
+// =========================================================
+// 1. PROTECTED ROUTE MIDDLEWARE COMPONENT
+// =========================================================
+const ProtectedRoute = ({ children }) => {
+  // Read the token key exactly matching the Login system storage marker
+  const token = localStorage.getItem('token');
+
+  // If no system access key token is found, securely eject user back to registration terminal
+  if (!token) {
+    return <Navigate to="/register" replace />;
+  }
+
+  // If token is verified, safely render the requested component layout
+  return children;
+};
+
+// =========================================================
+// 2. TEMPORARY HOMEPAGE DASHBOARD COMPONENT
+// =========================================================
+// (Replace this placeholder with your actual Dashboard/Home component if it's in another file)
+function HomeDashboard() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('token'); // Wipe token credentials from local system
+    alert('🔒 Session closed. System locked.');
+    window.location.reload(); // Force full structural state wipe
+  };
+
+  return (
+    <div style={{ backgroundColor: '#000000', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#ffffff', fontFamily: 'sans-serif' }}>
+      <div style={{ border: '2px solid #00FF66', padding: '40px', borderRadius: '12px', backgroundColor: '#0a0a0a', textAlign: 'center', boxShadow: '0px 0px 20px rgba(0, 255, 102, 0.15)' }}>
+        <h1 style={{ color: '#00FF66', marginBottom: '10px' }}>MAIN CORE SYSTEM TERMINAL</h1>
+        <p style={{ color: '#666', marginBottom: '30px' }}>Database Connection: ONLINE | Firewall Status: ACTIVE</p>
+
+        <button
+          onClick={handleLogout}
+          style={{ backgroundColor: '#ff4444', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+        >
+          DISCONNECT SESSION
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// =========================================================
+// 3. MAIN ROUTING APPLICATION COMPONENT
+// =========================================================
 function App() {
-  // Server (Express) CORS configuration example:
-  // app.use(cors({
-  //   origin: ['http://localhost:5173', 'https://powerbank-app.onrender.com']
-  // }));
   return (
     <Router>
       <Routes>
-        {/* 1. If someone loads the base URL, send them straight to signup */}
-        <Route path="/" element={<Navigate to="/signup" />} />
 
-        {/* 2. Explicitly map out the authentication routes */}
-        <Route path="/signup" element={<Signup />} />
+        {/* 🔐 PUBLIC ROUTING PORTALS: Open access to login and registration panels */}
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-        {/* 3. The Home path that the login page attempts to open */}
-        <Route path="/home" element={<Home />} />
+        {/* 🛡️ PROTECTED CORE HOMEPAGE ROUTE: Accessible only with a valid local token string */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <HomeDashboard />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* 4. Fallback: If a path doesn't exist, bounce them back to login */}
-        <Route path="*" element={<Navigate to="/login" />} />
+        {/* 🔄 FALLBACK RE-ROUTE: Sends any random input string back to the central root index */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+
       </Routes>
     </Router>
   );
 }
+
+// Helper hook to support structural inline component triggers
+import { useNavigate } from 'react-router-dom';
 
 export default App;
