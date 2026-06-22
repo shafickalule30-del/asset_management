@@ -14,7 +14,6 @@ function Login() {
     setLoading(true);
 
     try {
-      // 🚀 Hits your live backend server at the correct /login endpoint
       const response = await fetch('https://asset-management-55t5.onrender.com/api/auth/login', {
         method: 'POST',
         headers: {
@@ -27,11 +26,30 @@ function Login() {
       const data = textData ? JSON.parse(textData) : {};
 
       if (response.ok) {
+        // ✅ Save BOTH token AND user object (ProtectedRoute checks for 'user')
         localStorage.setItem('token', data.token);
+
+        // Build a user object from the response
+        const userData = {
+          id: data.user?.id || data.id || email,
+          username: data.user?.username || data.username || email.split('@')[0],
+          email: email,
+          walletBalance: data.user?.walletBalance || 0,
+          balanceAccount: data.user?.balanceAccount || 0,
+          referrals: data.user?.referrals || 0,
+          claimedMilestones: data.user?.claimedMilestones || [],
+          transactions: data.user?.transactions || [],
+          activeMachines: data.user?.activeMachines || [],
+          pendingDeposits: data.user?.pendingDeposits || [],
+          pendingWithdrawals: data.user?.pendingWithdrawals || []
+        };
+
+        localStorage.setItem('user', JSON.stringify(userData));
+
         alert('🔑 Access Granted! Welcome to the Terminal Dashboard.');
 
-        // 🚀 SUCCESS ROUTE FIX: This navigates directly to the core home directory view layout
-        navigate('/');
+        // ✅ Navigate directly to /dashboard where ProtectedRoute renders Home.jsx
+        navigate('/dashboard');
       } else {
         setError(data.message || 'Authentication rejected.');
       }
