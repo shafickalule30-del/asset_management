@@ -14,7 +14,7 @@ mongoose.connect(MONGO_URI)
   .catch((err) => console.log("❌ Database connection error:", err));
 
 // ==========================================
-// 📝 DATA SCHEMAS (Updated with Active Fleet Tracking)
+// 📝 DATA SCHEMAS (Updated with Transactions)
 // ==========================================
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true },
@@ -23,7 +23,6 @@ const userSchema = new mongoose.Schema({
   balance: { type: Number, default: 0.0 },
   referrals: { type: Number, default: 0 },
   claimedMilestones: { type: [Number], default: [] },
-  // ⚡ Active fleet data storage node
   activeMachines: [{
     machineId: String,
     name: String,
@@ -36,21 +35,33 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
-// Helper function to calculate a future date by adding ONLY business days
+// 💰 NEW: Secure ledger collection schema for tracking deposit validation states
+const transactionSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  username: { type: String, required: true },
+  amount: { type: Number, required: true },
+  status: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Transaction = mongoose.model('Transaction', transactionSchema);
+
+// ==========================================
+// ⚙️ HELPER LOGIC FUNCTIONS
+// ==========================================
 function addBusinessDays(startDate, daysToAdd) {
   let currentDate = new Date(startDate);
   let addedDays = 0;
   while (addedDays < daysToAdd) {
     currentDate.setDate(currentDate.getDate() + 1);
     const dayOfWeek = currentDate.getDay();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Skip Sunday (0) and Saturday (6)
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
       addedDays++;
     }
   }
   return currentDate;
 }
 
-// Helper function to recalculate remaining week days between now and the end date
 function getRemainingBusinessDays(endDate) {
   let today = new Date();
   let targetEnd = new Date(endDate);
@@ -58,9 +69,8 @@ function getRemainingBusinessDays(endDate) {
 
   let count = 0;
   let current = new Date(today);
-  // Normalize hours to ensure accurate calendar days evaluation
-  current.setHours(0,0,0,0);
-  targetEnd.setHours(0,0,0,0);
+  current.setHours(0, 0, 0, 0);
+  targetEnd.setHours(0, 0, 0, 0);
 
   while (current < targetEnd) {
     current.setDate(current.getDate() + 1);
@@ -93,7 +103,7 @@ app.post('/api/auth/register', async (req, res) => {
   } catch (error) { res.status(500).json({ message: "Server error saving user profile" }); }
 });
 
-// 2. LOGIN ROUTE (Synchronizes active fleet machines right away)
+// 2. LOGIN ROUTE
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -102,7 +112,6 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    // Dynamic clean up: update remaining week days before returning state logs
     let dynamicUpdates = false;
     user.activeMachines.forEach(machine => {
       const expirationDate = addBusinessDays(machine.purchaseDate, machine.totalTargetDays);
@@ -117,31 +126,71 @@ app.post('/api/auth/login', async (req, res) => {
       await user.save();
     }
 
-    res.status(200).json({ 
-      message: "Login successful!", 
-      user: { 
-        id: user._id, 
-        username: user.username, 
-        email: user.email, 
-        balance: user.balance, 
-        referrals: user.referrals, 
+    res.status(200).json({
+      message: "Login successful!",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        balance: user.balance,
+        referrals: user.referrals,
         claimedMilestones: user.claimedMilestones,
         activeMachines: user.activeMachines
-      } 
+      }
     });
   } catch (error) { res.status(500).json({ message: "Server error during authentication" }); }
 });
 
-// 3. DEPOSIT ROUTE
+// 3. UPDATED DEPOSIT ROUTE: Creates a pending request instead of crediting money instantly
 app.post('/api/account/deposit', async (req, res) => {
   try {
     const { userId, amount } = req.body;
-    const updatedUser = await User.findByIdAndUpdate(userId, { $inc: { balance: Number(amount) } }, { new: true });
-    res.status(200).json({ balance: updatedUser.balance });
-  } catch (error) { res.status(500).json({ message: "Deposit processing error" }); }
+
+    const userProfile = await User.findById(userId);
+    if (!userProfile) return res.status(404).json({ message: "User account profile not found" });
+
+    // Creates an immutable log unit waiting inside the processing queue
+    const depositRequest = new Transaction({
+      userId: userProfile._id,
+      username: userProfile.username,
+      amount: Number(amount),
+      status: 'Pending'
+    });
+
+    await depositRequest.save();
+    res.status(201).json({ message: "Deposit request queued. Awaiting administrative confirmation token validation." });
+  } catch (error) { res.status(500).json({ message: "Deposit request registration fault encountered." }); }
 });
 
-// 4. WITHDRAW ROUTE
+// 4. ADMIN PIPELINE: Pulls all unverified system transactions across web environments
+app.get('/api/transactions/pending', async (req, res) => {
+  try {
+    const pendingReceipts = await Transaction.find({ status: 'Pending' }).sort({ createdAt: -1 });
+    res.status(200).json(pendingReceipts);
+  } catch (error) { res.status(500).json({ message: "Error fetching administration queues." }); }
+});
+
+// 5. ADMIN PIPELINE: Changes transaction status and increments balance property safely
+app.put('/api/transactions/approve/:id', async (req, res) => {
+  try {
+    const targetReceipt = await Transaction.findById(req.params.id);
+    if (!targetReceipt || targetReceipt.status !== 'Pending') {
+      return res.status(400).json({ message: "Transaction statement processed or unlisted." });
+    }
+
+    // Mathematically increments the matching user profile data ledger entry
+    await User.findByIdAndUpdate(targetReceipt.userId, {
+      $inc: { balance: targetReceipt.amount }
+    });
+
+    targetReceipt.status = 'Approved';
+    await targetReceipt.save();
+
+    res.status(200).json({ message: "System balance modification approved, operator wallet credited." });
+  } catch (error) { res.status(500).json({ message: "Execution error during allocation change." }); }
+});
+
+// 6. WITHDRAW ROUTE
 app.post('/api/account/withdraw', async (req, res) => {
   try {
     const { userId, amount } = req.body;
@@ -153,7 +202,7 @@ app.post('/api/account/withdraw', async (req, res) => {
   } catch (error) { res.status(500).json({ message: "Withdrawal processing error" }); }
 });
 
-// 5. RE-ENGINEERED PRODUCT PROCUREMENT (Processes deductions & generates fleet cards)
+// 7. RE-ENGINEERED PRODUCT PROCUREMENT
 app.post('/api/account/buy', async (req, res) => {
   try {
     const { userId, productName, price, classTier, targetDays } = req.body;
@@ -164,7 +213,6 @@ app.post('/api/account/buy', async (req, res) => {
     if (!currentUser) return res.status(404).json({ message: "User profile missing" });
     if (currentUser.balance < cost) return res.status(400).json({ message: "Insufficient balance" });
 
-    // Instantiates a unique active configuration block for the user's fleet deployment portfolio
     const machineDeploymentUnit = {
       machineId: `MCH-${Math.floor(100000 + Math.random() * 900000)}`,
       name: productName,
@@ -175,26 +223,26 @@ app.post('/api/account/buy', async (req, res) => {
     };
 
     const updatedUser = await User.findByIdAndUpdate(
-      userId, 
-      { 
+      userId,
+      {
         $inc: { balance: -cost },
         $push: { activeMachines: machineDeploymentUnit }
-      }, 
+      },
       { new: true }
     );
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: `Deployment Successful! ${productName} joined your active terminal fleet grid.`,
       balance: updatedUser.balance,
       activeMachines: updatedUser.activeMachines
     });
-  } catch (error) { 
+  } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Purchase processing error encountered." }); 
+    res.status(500).json({ message: "Purchase processing error encountered." });
   }
 });
 
-// 6. MILESTONE REWARD CLAIM ROUTE
+// 8. MILESTONE REWARD CLAIM ROUTE
 app.post('/api/account/claim-reward', async (req, res) => {
   try {
     const { userId, milestone } = req.body;
@@ -205,16 +253,16 @@ app.post('/api/account/claim-reward', async (req, res) => {
     if (user.claimedMilestones.includes(target)) return res.status(400).json({ message: "This milestone bonus has already been safely claimed!" });
 
     const milestoneRewards = {
-      2:  { bonus: 3000,   msg: "🎉 Milestone 1 Claimed: UGX 3,000 added!" },
-      5:  { bonus: 10000,  msg: "🎉 Milestone 2 Claimed: UGX 10,000 added!" },
-      10: { bonus: 20000,  msg: "🎉 Milestone 3 Claimed: UGX 20,000 added!" },
-      15: { bonus: 0,      msg: "🎁 Milestone 4 Claimed: You won an Alpha Slim 10K Powerbank! Delivery ticket opened." },
-      20: { bonus: 45000,  msg: "🎉 Milestone 5 Claimed: UGX 45,000 added!" },
-      25: { bonus: 60000,  msg: "🎉 Milestone 6 Claimed: UGX 60,000 added!" },
-      30: { bonus: 0,      msg: "🎁 Milestone 7 Claimed: You won a Delta Prime 20K Powerbank! Delivery ticket opened." },
-      40: { bonus: 90000,  msg: "🎉 Milestone 8 Claimed: UGX 90,000 added!" },
+      2: { bonus: 3000, msg: "🎉 Milestone 1 Claimed: UGX 3,000 added!" },
+      5: { bonus: 10000, msg: "🎉 Milestone 2 Claimed: UGX 10,000 added!" },
+      10: { bonus: 20000, msg: "🎉 Milestone 3 Claimed: UGX 20,000 added!" },
+      15: { bonus: 0, msg: "🎁 Milestone 4 Claimed: You won an Alpha Slim 10K Powerbank! Delivery ticket opened." },
+      20: { bonus: 45000, msg: "🎉 Milestone 5 Claimed: UGX 45,000 added!" },
+      25: { bonus: 60000, msg: "🎉 Milestone 6 Claimed: UGX 60,000 added!" },
+      30: { bonus: 0, msg: "🎁 Milestone 7 Claimed: You won a Delta Prime 20K Powerbank! Delivery ticket opened." },
+      40: { bonus: 90000, msg: "🎉 Milestone 8 Claimed: UGX 90,000 added!" },
       50: { bonus: 130000, msg: "🎉 Milestone 9 Claimed: UGX 130,000 added!" },
-      60: { bonus: 0,      msg: "👑 Grand Master Claimed: You won a Quantum Base 40K Powerbank! Ticket opened." }
+      60: { bonus: 0, msg: "👑 Grand Master Claimed: You won a Quantum Base 40K Powerbank! Ticket opened." }
     };
 
     const targetReward = milestoneRewards[target];
