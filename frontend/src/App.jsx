@@ -1,51 +1,61 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './Login';       
-import Register from './Register'; 
-import Home from './Home'; // 🛠️ 1. IMPORT YOUR HOME FILE HERE
+import Login from './Login';
+import Register from './Register';
+import Home from './Home';
 
 // =========================================================
-// AUTHENTICATION GUARDS
+// 1. PROTECTED ROUTE CONTROLLER
 // =========================================================
 const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  if (!token) {
+  const user = localStorage.getItem('user');
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
   return children;
 };
 
-const PublicRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    return <Navigate to="/dashboard" replace />;
-  }
-  return children;
-};
-
 // =========================================================
-// MAIN ROUTING ARCHITECTURE
+// 2. MAIN ROUTING APPLICATION
 // =========================================================
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Public authentication panels */}
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
-        
-        {/* 🛠️ 2. YOUR HOME COMPONENT IS NOW LOADED SECURELY HERE */}
-        <Route 
-          path="/dashboard" 
+        {/* Public Routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        {/* Protected Routes */}
+        <Route
+          path="/dashboard"
           element={
             <ProtectedRoute>
               <Home />
             </ProtectedRoute>
-          } 
+          }
+        />
+        <Route
+          path="/home"
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
         />
 
-        {/* Fallback route: redirects anything else to the dashboard/home */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        {/* Root — redirect based on login status */}
+        <Route
+          path="/"
+          element={
+            localStorage.getItem('user')
+              ? <Navigate to="/dashboard" replace />
+              : <Navigate to="/login" replace />
+          }
+        />
+
+        {/* Catch-all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
