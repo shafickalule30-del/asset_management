@@ -305,30 +305,28 @@ function Home() {
   // =====================
   // DEPOSIT — send to admin for verification
   // =====================
+  // simplified deposit submit: send to external API to create deposit request
   const handlePaymentIdSubmit = async (e) => {
     e.preventDefault();
     const amount = Number(depositAmount);
     if (!amount || amount <= 0) return showToast("❌ Enter a valid amount.", 'error');
-    if (!paymentId.trim()) return showToast("❌ Enter the payment/transaction ID.", 'error');
 
     try {
-      const res = await fetch(`${ADMIN_API}/submit-deposit`, {
+      const response = await fetch('https://asset-management-55t5.onrender.com/api/account/deposit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          user_id: user.id,
-          username: user.username || 'Anonymous',
-          email: user.email || '',
-          amount: amount,
-          payment_id: paymentId.trim(),
-          network: depositNetwork,
-          phone: user.phone || '',
-          date: new Date().toISOString()
+          userId: user.id,
+          amount: Number(amount)
         })
       });
 
-      if (res.ok) {
-        const data = await res.json();
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok) {
+        // locally track pending deposit
         const depositId = data.deposit_id || data.id || `D-${Date.now()}`;
         const newPendingDeposit = { id: depositId, amount, type: 'deposit', processed: false, adminStatus: 'pending' };
         const newPendingDeposits = [...pendingDeposits, newPendingDeposit];
@@ -339,16 +337,15 @@ function Home() {
         setTransactions(newTransactions);
         saveUserData(undefined, undefined, undefined, newTransactions, undefined, newPendingDeposits, undefined);
 
-        showToast(`⏳ Deposit of UGX ${amount.toLocaleString()} sent to admin for verification.`, 'info');
-        setPaymentId('');
+        alert('💰 Deposit request sent! Awaiting admin approval.');
         setDepositAmount('');
         setCurrentView('dashboard');
       } else {
-        const errData = await res.json().catch(() => ({}));
-        showToast(`❌ ${errData.message || 'Failed to submit deposit. Try again.'}`, 'error');
+        alert(data.message || 'Failed to submit request.');
       }
     } catch (err) {
-      showToast("❌ Cannot reach admin server (port 3000). Make sure the admin panel is running.", 'error');
+      console.error('Deposit error:', err);
+      alert('❌ Could not connect to the server.');
     }
   };
 

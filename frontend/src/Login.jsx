@@ -14,7 +14,7 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch('https://asset-management-55t5.onrender.com/api/auth/login', {
+      const response = await fetch('https://asset-management-55t5.onrender.com/api/augit add th/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
