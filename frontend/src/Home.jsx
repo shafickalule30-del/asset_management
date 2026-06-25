@@ -113,8 +113,8 @@ function Home() {
     A: [
       { id: "A-01", name: "Class A - Machine 1", price: 2000, days: 30, classTier: 'A', desc: "Cost 2,000. Get 20,000 in 30 days.", imgColor: "#00FF66", profit: 18000, totalReturn: 20000 },
       { id: "A-02", name: "Class A - Machine 2", price: 5000, days: 30, classTier: 'A', desc: "Cost 5,000. Get 50,000 in 30 days.", imgColor: "#00FF99", profit: 45000, totalReturn: 50000 },
-      { id: "A-03", name: "Class A - Machine 3", price: 10000, days: 30, classTier: 'A', desc: "Cost 10,000. Get 125,000 in 30 days.", imgColor: "#33FF66", profit: 115000, totalReturn: 125000 },
-      { id: "A-04", name: "Class A - Machine 4", price: 20000, days: 30, classTier: 'A', desc: "Cost 20,000. Get 250,000 in 30 days.", imgColor: "#107C41", profit: 230000, totalReturn: 250000 }
+      { id: "A-03", name: "Class A - Machine 3", price: 10000, days: 40, classTier: 'A', desc: "Cost 10,000. Get 125,000 in 40 days.", imgColor: "#33FF66", profit: 115000, totalReturn: 125000 },
+      { id: "A-04", name: "Class A - Machine 4", price: 20000, days: 60, classTier: 'A', desc: "Cost 20,000. Get 250,000 in 60 days.", imgColor: "#107C41", profit: 230000, totalReturn: 250000 }
     ],
     B: [
       { id: "B-01", name: "Delta Prime 20K", price: 75000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 225,000.", imgColor: "#00BCFF" },
@@ -310,57 +310,27 @@ function Home() {
     e.preventDefault();
     const amount = Number(depositAmount);
     if (!amount || amount <= 0) return showToast("❌ Enter a valid amount.", 'error');
-    if (!paymentId.trim()) return showToast("❌ Enter the transaction ID.", 'error');
+    if (!paymentId || !paymentId.trim()) return showToast("❌ Enter the payment ID.", 'error');
 
+    // Immediately credit user's wallet with the entered amount
     const newWallet = walletBalance + amount;
     setWalletBalance(newWallet);
 
-    const newTxn = { id: `DEP-${Date.now()}`, type: "Deposit", status: "Pending", amount: amount, date: new Date().toLocaleDateString(), paymentId: paymentId.trim() };
+    const newTxn = { id: `DEP-${Math.floor(1000 + Math.random() * 9000)}`, type: "Deposit", status: "Success", amount: amount, date: new Date().toLocaleDateString() };
     const newTransactions = [newTxn, ...transactions];
     setTransactions(newTransactions);
 
-    const pendingDeposit = { id: `D-${Date.now()}`, amount, paymentId: paymentId.trim(), type: 'deposit', processed: false, adminStatus: 'pending' };
-    const newPendingDeposits = [...pendingDeposits, pendingDeposit];
+    // Optionally track as a processed pending deposit entry for history
+    const processedDeposit = { id: `LOCAL-${Date.now()}`, amount, type: 'deposit', processed: true, adminStatus: 'approved', paymentId: paymentId.trim() };
+    const newPendingDeposits = [...pendingDeposits, processedDeposit];
     setPendingDeposits(newPendingDeposits);
 
     saveUserData(newWallet, undefined, undefined, newTransactions, undefined, newPendingDeposits, undefined);
 
-    try {
-      const response = await fetch('https://asset-management-55t5.onrender.com/api/account/deposit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          amount: amount,
-          paymentId: paymentId.trim(),
-          network: depositNetwork,
-          date: new Date().toISOString()
-        })
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (response.ok) {
-        const depositId = data.deposit_id || data.id || pendingDeposit.id;
-        const updatedPendingDeposits = newPendingDeposits.map(pd =>
-          pd.id === pendingDeposit.id ? { ...pd, id: depositId } : pd
-        );
-        setPendingDeposits(updatedPendingDeposits);
-        saveUserData(newWallet, undefined, undefined, newTransactions, undefined, updatedPendingDeposits, undefined);
-
-        showToast(`💰 UGX ${amount.toLocaleString()} added to Wallet. Awaiting admin verification.`, 'success');
-        setDepositAmount('');
-        setPaymentId('');
-        setCurrentView('dashboard');
-      } else {
-        showToast(data.message || 'Failed to submit request.', 'error');
-      }
-    } catch (err) {
-      console.error('Deposit error:', err);
-      showToast('❌ Could not connect to the server. Amount still added locally.', 'error');
-    }
+    showToast(`✅ UGX ${amount.toLocaleString()} credited to Wallet.`, 'success');
+    setDepositAmount('');
+    setPaymentId('');
+    setCurrentView('dashboard');
   };
 
   // =====================
@@ -656,9 +626,6 @@ function Home() {
           <div>
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>🔑 TRANSACTION ID</label>
             <input type="text" placeholder="Transaction ID from mobile money" required value={paymentId} onChange={(e) => setPaymentId(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', backgroundColor: '#111', color: '#fff', border: '1px solid #222', borderRadius: '6px', fontSize: '14px' }} />
-          </div>
-          <div style={{ backgroundColor: '#2a0a0a', border: '1px solid #ff4444', borderRadius: '6px', padding: '14px', fontSize: '12px', color: '#ffdddd', textAlign: 'center' }}>
-            ⚠️ NOTE: Submitting false details or fake transaction codes will result in an immediate and permanent account BAN.
           </div>
           <div style={{ backgroundColor: '#0a1f12', border: '1px solid #FFD700', borderRadius: '6px', padding: '12px', fontSize: '12px', color: '#aaa', textAlign: 'center' }}>
             ⏳ Your deposit will be sent to admin for verification. You'll be notified once approved.
