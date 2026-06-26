@@ -26,33 +26,27 @@ function Login() {
       const data = textData ? JSON.parse(textData) : {};
       console.log('Login API Raw Data:', data);
 
-      if (response.ok) {
-        // ✅ Save BOTH token AND user object (ProtectedRoute checks for 'user')
-        localStorage.setItem('token', data.token);
-
-        // Build a user object from the response
+      if (response.status === 200) {
+        const userPayload = data.user || data;
         const userData = {
-          id: data.user?.id || data.user?._id || data.id || email,
-          username: data.user?.username || data.username || email.split('@')[0],
-          email: email,
-          
-          // Point these directly to the keys your server uses ('balance'):
-          walletBalance: data.user?.balance || 0, 
-          balanceAccount: data.user?.balance || 0, 
-          
-          referrals: data.user?.referrals || 0,
-          claimedMilestones: data.user?.claimedMilestones || [],
-          transactions: data.user?.transactions || [],
-          activeMachines: data.user?.activeMachines || [],
-          pendingDeposits: data.user?.pendingDeposits || [],
-          pendingWithdrawals: data.user?.pendingWithdrawals || []
+          ...userPayload,
+          id: userPayload.id || userPayload._id || data.id || email,
+          username: userPayload.username || data.username || email.split('@')[0],
+          email: userPayload.email || email,
+          walletBalance: userPayload.walletBalance ?? userPayload.balance ?? data.balance ?? 0,
+          balanceAccount: userPayload.balanceAccount ?? userPayload.balance ?? data.balance ?? 0,
+          referrals: userPayload.referrals ?? data.referrals ?? 0,
+          claimedMilestones: userPayload.claimedMilestones ?? data.claimedMilestones ?? [],
+          transactions: userPayload.transactions ?? data.transactions ?? [],
+          activeMachines: userPayload.activeMachines ?? data.activeMachines ?? [],
+          pendingDeposits: userPayload.pendingDeposits ?? data.pendingDeposits ?? [],
+          pendingWithdrawals: userPayload.pendingWithdrawals ?? data.pendingWithdrawals ?? []
         };
 
+        localStorage.setItem('token', data.token || '');
         localStorage.setItem('user', JSON.stringify(userData));
 
         alert('🔑 Access Granted! Welcome to the Terminal Dashboard.');
-
-        // ✅ Navigate directly to /dashboard where ProtectedRoute renders Home.jsx
         navigate('/dashboard');
       } else {
         setError(data.message || 'Authentication rejected.');

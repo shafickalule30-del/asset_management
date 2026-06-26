@@ -58,16 +58,26 @@ function getProductTotalReturn(product) {
 
 const ADMIN_API = 'https://asset-management-55t5.onrender.com/api';
 
+const getStoredUser = () => {
+  try {
+    const rawUser = localStorage.getItem('user');
+    return rawUser ? JSON.parse(rawUser) : null;
+  } catch {
+    return null;
+  }
+};
+
 function Home() {
-  const [user, setUser] = useState(null);
+  const initialStoredUser = getStoredUser();
+  const [user, setUser] = useState(initialStoredUser);
   const [activeTab, setActiveTab] = useState('home');
-  const [walletBalance, setWalletBalance] = useState(0);
-  const [balanceAccount, setBalanceAccount] = useState(0);
-  const [referrals, setReferrals] = useState(0);
-  const [claimedList, setClaimedList] = useState([]);
-  const [activeMachines, setActiveMachines] = useState([]);
-  const [pendingDeposits, setPendingDeposits] = useState([]);
-  const [pendingWithdrawals, setPendingWithdrawals] = useState([]);
+  const [walletBalance, setWalletBalance] = useState(initialStoredUser?.walletBalance || 0);
+  const [balanceAccount, setBalanceAccount] = useState(initialStoredUser?.balanceAccount || 0);
+  const [referrals, setReferrals] = useState(initialStoredUser?.referrals || 0);
+  const [claimedList, setClaimedList] = useState(initialStoredUser?.claimedMilestones || []);
+  const [activeMachines, setActiveMachines] = useState(initialStoredUser?.activeMachines || []);
+  const [pendingDeposits, setPendingDeposits] = useState(initialStoredUser?.pendingDeposits || []);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState(initialStoredUser?.pendingWithdrawals || []);
   const [now, setNow] = useState(Date.now());
 
   const [currentView, setCurrentView] = useState('dashboard');
@@ -256,28 +266,28 @@ function Home() {
 
   // Load user data on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
+    const savedUser = getStoredUser();
     if (!savedUser) {
       navigate('/login');
-    } else {
-      const parsedUser = JSON.parse(savedUser);
-      setUser(parsedUser);
-      setWalletBalance(parsedUser.walletBalance || 0);
-      setBalanceAccount(parsedUser.balanceAccount || 0);
-      setReferrals(parsedUser.referrals || 0);
-      setClaimedList(parsedUser.claimedMilestones || []);
-      setTransactions(parsedUser.transactions || []);
-      setPendingDeposits(parsedUser.pendingDeposits || []);
-      setPendingWithdrawals(parsedUser.pendingWithdrawals || []);
-
-      const savedMachines = parsedUser.activeMachines || [];
-      const machinesWithTime = savedMachines.map(m => ({
-        ...m,
-        purchasedAt: m.purchasedAt || new Date().toISOString(),
-        claimed: m.claimed || false
-      }));
-      setActiveMachines(machinesWithTime);
+      return;
     }
+
+    setUser(savedUser);
+    setWalletBalance(savedUser.walletBalance || 0);
+    setBalanceAccount(savedUser.balanceAccount || 0);
+    setReferrals(savedUser.referrals || 0);
+    setClaimedList(savedUser.claimedMilestones || []);
+    setTransactions(savedUser.transactions || []);
+    setPendingDeposits(savedUser.pendingDeposits || []);
+    setPendingWithdrawals(savedUser.pendingWithdrawals || []);
+
+    const savedMachines = savedUser.activeMachines || [];
+    const machinesWithTime = savedMachines.map(m => ({
+      ...m,
+      purchasedAt: m.purchasedAt || new Date().toISOString(),
+      claimed: m.claimed || false
+    }));
+    setActiveMachines(machinesWithTime);
   }, [navigate]);
 
   const saveUserData = (newWallet, newBalance, newMachines, newTransactions, newClaimed, newPendingDeposits, newPendingWithdrawals) => {
