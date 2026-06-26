@@ -26,7 +26,8 @@ const userSchema = new mongoose.Schema({
   username: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  balance: { type: Number, default: 0.0 },
+  walletBalance: { type: Number, default: 0.0 },      // For leasing machines
+  accountBalance: { type: Number, default: 0.0 },
   referrals: { type: Number, default: 0 },
   claimedMilestones: { type: [Number], default: [] },
   activeMachines: [{
@@ -138,7 +139,8 @@ app.post('/api/auth/login', async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
-        balance: user.balance,
+        walletBalance: user.walletBalance,
+        accountBalance: user.accountBalance,
         referrals: user.referrals,
         claimedMilestones: user.claimedMilestones,
         activeMachines: user.activeMachines
@@ -186,7 +188,7 @@ app.put('/api/transactions/approve/:id', async (req, res) => {
 
     // Mathematically increments the matching user profile data ledger entry
     await User.findByIdAndUpdate(targetReceipt.userId, {
-      $inc: { balance: targetReceipt.amount }
+      $inc: { accountBalance: targetReceipt.amount }
     });
 
     targetReceipt.status = 'Approved';
@@ -225,9 +227,9 @@ app.post('/api/account/withdraw', async (req, res) => {
     const { userId, amount } = req.body;
     const amt = Number(amount);
     const currentUser = await User.findById(userId);
-    if (currentUser.balance < amt) return res.status(400).json({ message: "Insufficient funds" });
-    const updatedUser = await User.findByIdAndUpdate(userId, { $inc: { balance: -amt } }, { new: true });
-    res.status(200).json({ balance: updatedUser.balance });
+    if (currentUser.accountBalance < amt) return res.status(400).json({ message: "Insufficient funds" });
+    const updatedUser = await User.findByIdAndUpdate(userId, { $inc: { accountBalance: -amt } }, { new: true });
+    res.status(200).json({ accountBalance: updatedUser.accountBalance });
   } catch (error) { res.status(500).json({ message: "Withdrawal processing error" }); }
 });
 
@@ -240,7 +242,7 @@ app.post('/api/account/buy', async (req, res) => {
 
     const currentUser = await User.findById(userId);
     if (!currentUser) return res.status(404).json({ message: "User profile missing" });
-    if (currentUser.balance < cost) return res.status(400).json({ message: "Insufficient balance" });
+    if (currentUser.accountBalance < cost) return res.status(400).json({ message: "Insufficient balance" });
 
     const machineDeploymentUnit = {
       machineId: `MCH-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -254,7 +256,7 @@ app.post('/api/account/buy', async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       {
-        $inc: { balance: -cost },
+        $inc: { accountBalance: -cost },
         $push: { activeMachines: machineDeploymentUnit }
       },
       { new: true }
@@ -262,7 +264,7 @@ app.post('/api/account/buy', async (req, res) => {
 
     res.status(200).json({
       message: `Deployment Successful! ${productName} joined your active terminal fleet grid.`,
-      balance: updatedUser.balance,
+      accountBalance: updatedUser.accountBalance,
       activeMachines: updatedUser.activeMachines
     });
   } catch (error) {
@@ -299,11 +301,11 @@ app.post('/api/account/claim-reward', async (req, res) => {
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { $inc: { balance: targetReward.bonus }, $push: { claimedMilestones: target } },
+      { $inc: { accountBalance: targetReward.bonus }, $push: { claimedMilestones: target } },
       { new: true }
     );
 
-    res.status(200).json({ message: targetReward.msg, balance: updatedUser.balance, claimedMilestones: updatedUser.claimedMilestones });
+    res.status(200).json({ message: targetReward.msg, accountBalance: updatedUser.accountBalance, claimedMilestones: updatedUser.claimedMilestones });
   } catch (error) { res.status(500).json({ message: "Error processing affiliate distribution claim." }); }
 });
 

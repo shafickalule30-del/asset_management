@@ -147,3 +147,33 @@ function Login() {
 }
 
 export default Login;
+
+/* Temporary Node script: save below as checkUser.js and run with `node checkUser.js`
+
+const { MongoClient } = require('mongodb');
+
+const uri = process.env.MONGO_URI || '<YOUR_MONGO_URI_HERE>';
+
+(async () => {
+  if (!uri || uri.includes('<YOUR_MONGO_URI_HERE>')) {
+    console.error('Please set MONGO_URI env var or replace <YOUR_MONGO_URI_HERE>');
+    process.exit(1);
+  }
+
+  const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+  try {
+    await client.connect();
+    const db = client.db(); // uses DB from URI
+    const users = db.collection('users');
+    const doc = await users.findOne({ email: 'shag@gmail.com' }, { projection: { balance: 1, activeMachines: 1 } });
+    if (!doc) return console.log('User not found');
+    console.log('balance:', doc.balance);
+    console.log('activeMachines:', Array.isArray(doc.activeMachines) ? doc.activeMachines : doc.activeMachines);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    await client.close();
+  }
+})();
+
+*/
