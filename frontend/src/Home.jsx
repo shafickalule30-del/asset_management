@@ -127,6 +127,12 @@ function Home() {
       { id: "C-02", name: "Quantum Solar 50K", price: 175000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 700,000.", imgColor: "#DAA520" },
       { id: "C-03", name: "Quantum Command 60K", price: 210000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 840,000.", imgColor: "#B8860B" },
       { id: "C-04", name: "Quantum Nexus Tower", price: 260000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 1,040,000.", imgColor: "#8B6508" }
+    ],
+    D: [
+      { id: "D-01", name: "Elite Prime 30K", price: 30000, days: 100, classTier: 'D', desc: "100 days. 1566% profit. Return UGX 500,000.", imgColor: "#FF1493", profit: 470000, totalReturn: 500000 },
+      { id: "D-02", name: "Elite Pro 50K", price: 50000, days: 100, classTier: 'D', desc: "100 days. 1600% profit. Return UGX 850,000.", imgColor: "#FF69B4", profit: 800000, totalReturn: 850000 },
+      { id: "D-03", name: "Elite Ultra 75K", price: 75000, days: 100, classTier: 'D', desc: "100 days. 1233% profit. Return UGX 1,000,000.", imgColor: "#FF00FF", profit: 925000, totalReturn: 1000000 },
+      { id: "D-04", name: "Elite Quantum 100K", price: 100000, days: 100, classTier: 'D', desc: "100 days. 1400% profit. Return UGX 1,500,000.", imgColor: "#9D4EDD", profit: 1400000, totalReturn: 1500000 }
     ]
   };
 
@@ -134,9 +140,9 @@ function Home() {
 
   const navigate = useNavigate();
 
-  // Live countdown tick
+  // Live countdown tick - updates every 100ms for smooth countdown
   useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 1000);
+    const interval = setInterval(() => setNow(Date.now()), 100);
     return () => clearInterval(interval);
   }, []);
 
@@ -846,10 +852,11 @@ function Home() {
               ⚖️ Balance Account: <strong style={{ color: '#00BCFF' }}>UGX {balanceAccount.toLocaleString()}</strong><br />
               💼 Wallet: <strong style={{ color: '#00FF66' }}>UGX {walletBalance.toLocaleString()}</strong> (used for leasing machines)
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <button onClick={() => setSelectedClass('A')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'A' ? (isDarkMode ? '#00FF66' : '#107C41') : (isDarkMode ? '#111' : '#e9ecef'), color: selectedClass === 'A' ? (isDarkMode ? '#000' : '#fff') : '#888' }}>CLASS A</button>
               <button onClick={() => setSelectedClass('B')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'B' ? '#00BCFF' : (isDarkMode ? '#111' : '#e9ecef'), color: selectedClass === 'B' ? '#000' : '#888' }}>CLASS B (200%)</button>
               <button onClick={() => setSelectedClass('C')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'C' ? '#FFD700' : (isDarkMode ? '#111' : '#e9ecef'), color: selectedClass === 'C' ? '#000' : '#888' }}>CLASS C (300%)</button>
+              <button onClick={() => setSelectedClass('D')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'D' ? '#FF1493' : (isDarkMode ? '#111' : '#e9ecef'), color: selectedClass === 'D' ? '#fff' : '#888' }}>CLASS D (100D)</button>
             </div>
             {powerbankCatalog[selectedClass].map((product) => {
               const totalReturn = getProductTotalReturn(product);
