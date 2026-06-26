@@ -139,8 +139,8 @@ app.post('/api/auth/login', async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
-        walletBalance: user.walletBalance,
-        accountBalance: user.accountBalance,
+        walletBalance: user.walletBalance ?? 0,
+        accountBalance: user.accountBalance ?? 0,
         referrals: user.referrals,
         claimedMilestones: user.claimedMilestones,
         activeMachines: user.activeMachines
@@ -186,9 +186,9 @@ app.put('/api/transactions/approve/:id', async (req, res) => {
       return res.status(400).json({ message: "Transaction statement processed or unlisted." });
     }
 
-    // Mathematically increments the matching user profile data ledger entry
+    // Deposits should credit the wallet balance, not the account balance.
     await User.findByIdAndUpdate(targetReceipt.userId, {
-      $inc: { accountBalance: targetReceipt.amount }
+      $inc: { walletBalance: targetReceipt.amount }
     });
 
     targetReceipt.status = 'Approved';
@@ -229,7 +229,7 @@ app.post('/api/account/withdraw', async (req, res) => {
     const currentUser = await User.findById(userId);
     if (currentUser.accountBalance < amt) return res.status(400).json({ message: "Insufficient funds" });
     const updatedUser = await User.findByIdAndUpdate(userId, { $inc: { accountBalance: -amt } }, { new: true });
-    res.status(200).json({ accountBalance: updatedUser.accountBalance });
+    res.status(200).json({ walletBalance: updatedUser.walletBalance, accountBalance: updatedUser.accountBalance });
   } catch (error) { res.status(500).json({ message: "Withdrawal processing error" }); }
 });
 
@@ -242,7 +242,7 @@ app.post('/api/account/buy', async (req, res) => {
 
     const currentUser = await User.findById(userId);
     if (!currentUser) return res.status(404).json({ message: "User profile missing" });
-    if (currentUser.accountBalance < cost) return res.status(400).json({ message: "Insufficient balance" });
+    if (currentUser.walletBalance < cost) return res.status(400).json({ message: "Insufficient balance" });
 
     const machineDeploymentUnit = {
       machineId: `MCH-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -256,7 +256,7 @@ app.post('/api/account/buy', async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       {
-        $inc: { accountBalance: -cost },
+        $inc: { walletBalance: -cost },
         $push: { activeMachines: machineDeploymentUnit }
       },
       { new: true }
@@ -264,6 +264,7 @@ app.post('/api/account/buy', async (req, res) => {
 
     res.status(200).json({
       message: `Deployment Successful! ${productName} joined your active terminal fleet grid.`,
+      walletBalance: updatedUser.walletBalance,
       accountBalance: updatedUser.accountBalance,
       activeMachines: updatedUser.activeMachines
     });
