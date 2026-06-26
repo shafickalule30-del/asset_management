@@ -32,17 +32,20 @@ function Login() {
 
         // Build a user object from the response
         const userData = {
-          id: data.user?.id ?? data.id ?? email,
-          username: data.user?.username ?? data.username ?? email.split('@')[0],
+          id: data.user?.id || data.user?._id || data.id || email,
+          username: data.user?.username || data.username || email.split('@')[0],
           email: email,
-          walletBalance: data.user?.walletBalance ?? data.walletBalance ?? 0,
-          balanceAccount: data.user?.balanceAccount ?? data.balanceAccount ?? 0,
-          referrals: data.user?.referrals ?? data.referrals ?? 0,
-          claimedMilestones: data.user?.claimedMilestones ?? data.claimedMilestones ?? [],
-          transactions: data.user?.transactions ?? data.transactions ?? [],
-          activeMachines: data.user?.activeMachines ?? data.activeMachines ?? [],
-          pendingDeposits: data.user?.pendingDeposits ?? data.pendingDeposits ?? [],
-          pendingWithdrawals: data.user?.pendingWithdrawals ?? data.pendingWithdrawals ?? []
+          
+          // Point these directly to the keys your server uses ('balance'):
+          walletBalance: data.user?.balance || 0, 
+          balanceAccount: data.user?.balance || 0, 
+          
+          referrals: data.user?.referrals || 0,
+          claimedMilestones: data.user?.claimedMilestones || [],
+          transactions: data.user?.transactions || [],
+          activeMachines: data.user?.activeMachines || [],
+          pendingDeposits: data.user?.pendingDeposits || [],
+          pendingWithdrawals: data.user?.pendingWithdrawals || []
         };
 
         localStorage.setItem('user', JSON.stringify(userData));
