@@ -5,7 +5,15 @@ const cors = require('cors');
 const app = express();
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: true, // Allows your live frontend environment to connect securely
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
+}));
+
+// Handle explicit preflight requests globally
+app.options('*', cors());
 
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://shafickalule30_db_user:shafic256@connect.x9dssxx.mongodb.net/test?retryWrites=true&w=majority&appName=connect";
 
