@@ -190,6 +190,29 @@ app.put('/api/transactions/approve/:id', async (req, res) => {
   } catch (error) { res.status(500).json({ message: "Execution error during allocation change." }); }
 });
 
+// NEW ROUTE: Fetch filtered transaction logs for a user dashboard
+app.get('/api/transactions', async (req, res) => {
+  try {
+    const { userId, status } = req.query;
+
+    // Build a dynamic query filter matching incoming frontend queries
+    let queryFilter = {};
+    if (userId) queryFilter.userId = userId;
+
+    // Map frontend lowercase string statuses ('approved', 'pending', 'rejected') 
+    // to match your Schema's capitalized versions ('Approved', 'Pending', 'Rejected')
+    if (status) {
+      queryFilter.status = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+    }
+
+    const logs = await Transaction.find(queryFilter).sort({ createdAt: -1 });
+    res.status(200).json(logs);
+  } catch (error) {
+    console.error("Error fetching transactions:", error);
+    res.status(500).json({ message: "Error fetching transaction logs." });
+  }
+});
+
 // 6. WITHDRAW ROUTE
 app.post('/api/account/withdraw', async (req, res) => {
   try {
