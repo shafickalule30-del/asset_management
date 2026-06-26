@@ -13,7 +13,7 @@ app.use(cors({
 }));
 
 // Handle explicit preflight requests globally
-app.options('*', cors());
+app.options('(.*)', cors());
 
 const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://shafickalule30_db_user:shafic256@connect.x9dssxx.mongodb.net/test?retryWrites=true&w=majority&appName=connect";
 
