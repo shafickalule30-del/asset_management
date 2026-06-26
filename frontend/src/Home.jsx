@@ -56,7 +56,7 @@ function getProductTotalReturn(product) {
   return calculateTotalReturn(product.price, product.classTier);
 }
 
-const ADMIN_API = 'http://localhost:3000/api';
+const ADMIN_API = 'https://asset-management-55t5.onrender.com/api';
 
 function Home() {
   const [user, setUser] = useState(null);
@@ -402,7 +402,7 @@ function Home() {
         showToast(`❌ ${errData.message || 'Failed to submit withdrawal.'}`, 'error');
       }
     } catch (err) {
-      showToast("❌ Cannot reach admin server (port 3000). Make sure the admin panel is running.", 'error');
+      showToast("❌ Cannot reach the backend server. Please try again later.", 'error');
     }
   };
 
