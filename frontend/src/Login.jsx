@@ -28,11 +28,13 @@ function Login() {
 
       if (response.status === 200) {
         const userPayload = data.user || data;
+        const userRole = String(userPayload.role || data.role || 'user').toLowerCase();
         const userData = {
           ...userPayload,
           id: userPayload.id || userPayload._id || data.id || email,
           username: userPayload.username || data.username || email.split('@')[0],
           email: userPayload.email || email,
+          role: userRole,
           walletBalance: userPayload.walletBalance ?? userPayload.balance ?? data.balance ?? 0,
           balanceAccount: userPayload.balanceAccount ?? userPayload.balance ?? data.balance ?? 0,
           referrals: userPayload.referrals ?? data.referrals ?? 0,
@@ -47,7 +49,7 @@ function Login() {
         localStorage.setItem('user', JSON.stringify(userData));
 
         alert('🔑 Access Granted! Welcome to the Terminal Dashboard.');
-        navigate('/dashboard');
+        navigate(userRole === 'admin' ? '/admin-panel' : '/dashboard');
       } else {
         setError(data.message || 'Authentication rejected.');
       }

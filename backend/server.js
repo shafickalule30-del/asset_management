@@ -49,6 +49,9 @@ const transactionSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   status: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
   transactionId: { type: String, default: null },
+  merchantAccountNumber: { type: String, default: null },
+  merchantAccountName: { type: String, default: null },
+  merchantAccountTimestamp: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -88,6 +91,19 @@ function getRemainingBusinessDays(endDate) {
     }
   }
   return count;
+}
+
+const depositAccounts = [
+  { number: '0760704907', name: 'Hadijah Nakatte' },
+  { number: '0730618292', name: 'Paul Jero' },
+  { number: '0750682508', name: 'Kakembo David' }
+];
+
+function getActiveDepositAccount(timestamp = new Date()) {
+  const currentDate = timestamp instanceof Date ? new Date(timestamp) : new Date(timestamp);
+  const totalMinutes = currentDate.getMinutes();
+  const index = Math.floor(totalMinutes / 5) % depositAccounts.length;
+  return depositAccounts[index];
 }
 
 // ==========================================
@@ -153,21 +169,33 @@ app.post('/api/auth/login', async (req, res) => {
 // 3. UPDATED DEPOSIT ROUTE: Creates a pending request instead of crediting money instantly
 app.post('/api/account/deposit', async (req, res) => {
   try {
-    const { userId, amount } = req.body;
+    const { userId, amount, transactionId } = req.body;
 
     const userProfile = await User.findById(userId);
     if (!userProfile) return res.status(404).json({ message: "User account profile not found" });
+
+    const activeAccount = getActiveDepositAccount(new Date());
 
     // Creates an immutable log unit waiting inside the processing queue
     const depositRequest = new Transaction({
       userId: userProfile._id,
       username: userProfile.username,
       amount: Number(amount),
-      status: 'Pending'
+      status: 'Pending',
+      transactionId: transactionId || null,
+      merchantAccountNumber: activeAccount.number,
+      merchantAccountName: activeAccount.name,
+      merchantAccountTimestamp: new Date()
     });
 
     await depositRequest.save();
-    res.status(201).json({ message: "Deposit request queued. Awaiting administrative confirmation token validation." });
+
+    console.log(`[Deposit Verification] ${userProfile.username} submitted transaction ID ${transactionId || 'N/A'} at ${new Date().toISOString()} | Active merchant: ${activeAccount.name} (${activeAccount.number})`);
+
+    res.status(201).json({
+      message: "Deposit request queued. Awaiting administrative confirmation token validation.",
+      activeAccount
+    });
   } catch (error) { res.status(500).json({ message: "Deposit request registration fault encountered." }); }
 });
 
@@ -365,4 +393,14 @@ app.post('/api/sms-webhook', async (req, res) => {
 });
 
 const PORT = 5000;
-app.listen(PORT, () => console.log(`🚀 API Fleet Engine active on port ${PORT}`));
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`🚀 API Fleet Engine active on port ${PORT}`));
+}
+
+module.exports = {
+  app,
+  getActiveDepositAccount,
+  depositAccounts,
+  Transaction,
+  User
+};

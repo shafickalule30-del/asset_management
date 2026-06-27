@@ -1,8 +1,6 @@
 // frontend/src/Home.jsx
 import React, { useEffect, useState } from "react";
-import AdminPanel from "./AdminPanel"; // Resolves from exact same folder level
-
-export default function Home() {
+export default function AdminPanel() {
   const [serverStatus, setServerStatus] = useState("Connecting...");
   const [errorLog, setErrorLog] = useState(null);
 
@@ -30,11 +28,11 @@ export default function Home() {
   return (
     <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
       <h2>Matrix System Control Node</h2>
-      
+
       {/* Network Connectivity Status Bar */}
       <div style={{
-        padding: "10px", 
-        marginBottom: "20px", 
+        padding: "10px",
+        marginBottom: "20px",
         backgroundColor: serverStatus.includes("Online") ? "#d4edda" : "#f8d7da",
         color: serverStatus.includes("Online") ? "#155724" : "#721c24",
         borderRadius: "4px"
@@ -47,7 +45,7 @@ export default function Home() {
       )}
 
       <hr />
-      
+
       {/* Rendering your subcomponent panel */}
       <AdminPanel />
     </div>

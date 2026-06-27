@@ -58,6 +58,12 @@ function getProductTotalReturn(product) {
 
 const ADMIN_API = 'https://asset-management-55t5.onrender.com/api';
 
+const depositAccounts = [
+  { number: '0760704907', name: 'Hadijah Nakatte' },
+  { number: '0730618292', name: 'Paul Jero' },
+  { number: '0750682508', name: 'Kakembo David' }
+];
+
 const getStoredUser = () => {
   try {
     const rawUser = localStorage.getItem('user');
@@ -98,6 +104,7 @@ function Home() {
   const [withdrawPhone, setWithdrawPhone] = useState('');
   const [withdrawNetwork, setWithdrawNetwork] = useState('MTN');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [currentAccount, setCurrentAccount] = useState(depositAccounts[0]);
 
   // For toasts/alerts in-app
   const [toast, setToast] = useState(null);
@@ -154,6 +161,18 @@ function Home() {
   // Live countdown tick - updates every 100ms for smooth countdown
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const rotateDepositAccount = () => {
+      const totalMinutes = new Date().getMinutes();
+      const index = Math.floor(totalMinutes / 5) % depositAccounts.length;
+      setCurrentAccount(depositAccounts[index]);
+    };
+
+    rotateDepositAccount();
+    const interval = setInterval(rotateDepositAccount, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -636,8 +655,11 @@ function Home() {
         <div style={{ backgroundColor: '#111', padding: '16px', borderRadius: '10px', border: '2px solid #00FF66', marginBottom: '20px' }}>
           <span style={{ fontSize: '11px', color: '#00FF66', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>SEND MONEY TO</span>
           <div style={{ fontSize: '14px' }}>
-            <span style={{ color: '#888' }}>Account:</span> <strong style={{ color: '#fff' }}>0760704907</strong><br />
-            <span style={{ color: '#888' }}>Name:</span> <strong style={{ color: '#fff' }}>NAKATTE HADIJAH</strong>
+            <span style={{ color: '#888' }}>Account:</span> <strong style={{ color: '#fff' }}>{currentAccount.number}</strong><br />
+            <span style={{ color: '#888' }}>Name:</span> <strong style={{ color: '#fff' }}>{currentAccount.name}</strong>
+          </div>
+          <div style={{ marginTop: '10px', backgroundColor: '#1a1400', border: '1px solid #ffcc00', color: '#ffcc00', padding: '10px', borderRadius: '6px', fontSize: '12px', lineHeight: 1.4 }}>
+            ⚠️ This number changes every 5 minutes. Please only send money to the active number currently shown on your screen.
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>

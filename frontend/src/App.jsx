@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './Login';
 import Register from './Register';
 import Home from './Home';
+import AdminPanel from './pages/AdminPanel';
 
 const getStoredUser = () => {
   try {
@@ -16,20 +17,33 @@ const getStoredUser = () => {
 // =========================================================
 // 1. PROTECTED ROUTE CONTROLLER
 // =========================================================
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, requiredRole = null }) => {
   const user = getStoredUser();
+
   if (!user) {
     return <Navigate to="/login" replace />;
   }
+
+  if (requiredRole && String(user.role || '').toLowerCase() !== requiredRole) {
+    return <Navigate to="/login" replace />;
+  }
+
   return children;
 };
 
 const RootRedirect = () => {
   const [checked, setChecked] = useState(false);
-  const [hasStoredUser, setHasStoredUser] = useState(false);
+  const [redirectPath, setRedirectPath] = useState('/login');
 
   useEffect(() => {
-    setHasStoredUser(Boolean(getStoredUser()));
+    const storedUser = getStoredUser();
+    if (storedUser?.role === 'admin') {
+      setRedirectPath('/admin-panel');
+    } else if (storedUser) {
+      setRedirectPath('/dashboard');
+    } else {
+      setRedirectPath('/login');
+    }
     setChecked(true);
   }, []);
 
@@ -37,7 +51,7 @@ const RootRedirect = () => {
     return null;
   }
 
-  return hasStoredUser ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />;
+  return <Navigate to={redirectPath} replace />;
 };
 
 // =========================================================
@@ -57,6 +71,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Home />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-panel"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminPanel />
             </ProtectedRoute>
           }
         />
