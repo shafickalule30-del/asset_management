@@ -7,7 +7,15 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:5000";
+  const getApiBaseUrl = () => {
+    if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      return '';
+    }
+    return 'https://asset-management-55t5.onrender.com';
+  };
+
+  const API_BASE_URL = getApiBaseUrl();
 
   const fetchPendingTransactions = async () => {
     try {

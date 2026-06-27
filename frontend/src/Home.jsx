@@ -56,7 +56,15 @@ function getProductTotalReturn(product) {
   return calculateTotalReturn(product.price, product.classTier);
 }
 
-const ADMIN_API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000';
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return '';
+  }
+  return 'https://asset-management-55t5.onrender.com';
+};
+
+const ADMIN_API = getApiBaseUrl();
 
 const depositAccounts = [
   { number: '0760704907', name: 'Hadijah Nakatte' },
@@ -193,7 +201,7 @@ function Home() {
     const checkApprovedDeposits = async () => {
       if (!user) return;
       try {
-        const res = await fetch(`${ADMIN_API}/transactions?userId=${user.id}&type=deposit&status=approved`);
+        const res = await fetch(`${ADMIN_API}/api/transactions?userId=${user.id}&type=deposit&status=approved`);
         if (!res.ok) return;
         const approvedDeposits = await res.json();
 
@@ -226,7 +234,7 @@ function Home() {
     const checkApprovedWithdrawals = async () => {
       if (!user) return;
       try {
-        const res = await fetch(`${ADMIN_API}/transactions?userId=${user.id}&type=withdraw&status=approved`);
+        const res = await fetch(`${ADMIN_API}/api/transactions?userId=${user.id}&type=withdraw&status=approved`);
         if (!res.ok) return;
         const approvedWithdrawals = await res.json();
 
@@ -252,7 +260,7 @@ function Home() {
     const checkRejectedWithdrawals = async () => {
       if (!user) return;
       try {
-        const res = await fetch(`${ADMIN_API}/transactions?userId=${user.id}&type=withdraw&status=rejected`);
+        const res = await fetch(`${ADMIN_API}/api/transactions?userId=${user.id}&type=withdraw&status=rejected`);
         if (!res.ok) return;
         const rejectedWithdrawals = await res.json();
 
@@ -413,7 +421,7 @@ function Home() {
 
     try {
       // 1. Send withdrawal request to admin for approval
-      const res = await fetch(`${ADMIN_API}/submit-withdrawal`, {
+      const res = await fetch(`${ADMIN_API}/api/submit-withdrawal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
