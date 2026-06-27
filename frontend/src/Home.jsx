@@ -97,6 +97,7 @@ function Home() {
   const [depositNetwork, setDepositNetwork] = useState('MTN');
   const [withdrawPhone, setWithdrawPhone] = useState('');
   const [withdrawNetwork, setWithdrawNetwork] = useState('MTN');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // For toasts/alerts in-app
   const [toast, setToast] = useState(null);
@@ -309,6 +310,9 @@ function Home() {
   const shareMessage = `Hey! Join this hardware energy app! Sign up here: ${referralLink}`;
 
   const triggerDepositFlow = () => {
+    setShowPaymentModal(false);
+    setDepositAmount('');
+    setPaymentId('');
     setCurrentView('coin_spin');
     setTimeout(() => setCurrentView('deposit_guide'), 1200);
   };
@@ -323,7 +327,7 @@ function Home() {
   // =====================
   // simplified deposit submit: send to external API to create deposit request
   const handlePaymentIdSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     const amount = Number(depositAmount);
     if (!amount || amount <= 0) return showToast("❌ Enter a valid amount.", 'error');
     if (!paymentId || !paymentId.trim()) return showToast("❌ Enter the payment ID.", 'error');
@@ -347,6 +351,12 @@ function Home() {
     setDepositAmount('');
     setPaymentId('');
     setCurrentView('dashboard');
+  };
+
+  const handleDepositNext = () => {
+    const amount = Number(depositAmount);
+    if (!amount || amount <= 0) return showToast("❌ Enter a valid amount.", 'error');
+    setShowPaymentModal(true);
   };
 
   // =====================
@@ -634,20 +644,40 @@ function Home() {
           <button onClick={() => setDepositNetwork('MTN')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: depositNetwork === 'MTN' ? '#FFCC00' : '#222', color: depositNetwork === 'MTN' ? '#000' : '#888' }}>MTN</button>
           <button onClick={() => setDepositNetwork('Airtel')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: depositNetwork === 'Airtel' ? '#FF0000' : '#222', color: depositNetwork === 'Airtel' ? '#fff' : '#888' }}>Airtel</button>
         </div>
-        <form onSubmit={handlePaymentIdSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div>
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>💰 AMOUNT SENT (UGX)</label>
             <input type="number" placeholder="e.g. 50000" required min="1" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', backgroundColor: '#111', color: '#fff', border: '1px solid #00FF66', borderRadius: '6px', fontSize: '14px' }} />
           </div>
-          <div>
-            <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>🔑 TRANSACTION ID</label>
-            <input type="text" placeholder="Transaction ID from mobile money" required value={paymentId} onChange={(e) => setPaymentId(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', backgroundColor: '#111', color: '#fff', border: '1px solid #222', borderRadius: '6px', fontSize: '14px' }} />
-          </div>
           <div style={{ backgroundColor: '#0a1f12', border: '1px solid #FFD700', borderRadius: '6px', padding: '12px', fontSize: '12px', color: '#aaa', textAlign: 'center' }}>
-            ⏳ Your deposit will be sent to admin for verification. You'll be notified once approved.
+            ⏳ After sending the money, click Next and enter your transaction ID in the popup window.
           </div>
-          <button type="submit" style={{ backgroundColor: '#00FF66', color: '#000', border: 'none', padding: '14px', borderRadius: '6px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>Submit for Verification</button>
-        </form>
+          <button type="button" onClick={handleDepositNext} style={{ backgroundColor: '#00FF66', color: '#000', border: 'none', padding: '14px', borderRadius: '6px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>Next</button>
+        </div>
+
+        {showPaymentModal && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 5000, padding: '20px' }}>
+            <div style={{ backgroundColor: '#111', border: '2px solid #00FF66', borderRadius: '12px', width: '100%', maxWidth: '420px', padding: '25px', boxSizing: 'border-box' }}>
+              <h3 style={{ margin: '0 0 10px 0', color: '#00FF66', fontSize: '18px' }}>ENTER PAYMENT ID</h3>
+              <p style={{ color: '#ccc', fontSize: '13px', margin: '0 0 20px 0' }}>
+                Amount: <strong style={{ color: '#fff' }}>UGX {depositAmount ? Number(depositAmount).toLocaleString() : '0'}</strong>
+              </p>
+              <form onSubmit={handlePaymentIdSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div>
+                  <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>🔑 TRANSACTION ID</label>
+                  <input type="text" placeholder="Transaction ID from mobile money" required value={paymentId} onChange={(e) => setPaymentId(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', backgroundColor: '#111', color: '#fff', border: '1px solid #222', borderRadius: '6px', fontSize: '14px' }} />
+                </div>
+                <div style={{ backgroundColor: '#0a1f12', border: '1px solid #FFD700', borderRadius: '6px', padding: '12px', fontSize: '12px', color: '#aaa', textAlign: 'center' }}>
+                  ⏳ Your deposit will be sent to admin for verification. You'll be notified once approved.
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <button type="button" onClick={() => setShowPaymentModal(false)} style={{ backgroundColor: '#222', color: '#888', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Back</button>
+                  <button type="submit" style={{ backgroundColor: '#00FF66', color: '#000', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Submit</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

@@ -48,6 +48,7 @@ const transactionSchema = new mongoose.Schema({
   username: { type: String, required: true },
   amount: { type: Number, required: true },
   status: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
+  transactionId: { type: String, default: null },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -308,6 +309,59 @@ app.post('/api/account/claim-reward', async (req, res) => {
 
     res.status(200).json({ message: targetReward.msg, accountBalance: updatedUser.accountBalance, claimedMilestones: updatedUser.claimedMilestones });
   } catch (error) { res.status(500).json({ message: "Error processing affiliate distribution claim." }); }
+});
+
+// 9. SMS WEBHOOK ENDPOINT: Automated balance credit from SMS providers
+app.post('/api/sms-webhook', async (req, res) => {
+  try {
+    // Extract sender and message with fallback options for varied payload formats
+    const sender = req.body.from || req.body.sender || '';
+    const text = req.body.message || req.body.text || '';
+
+    // Verify sender is from an approved telecom provider
+    if (!sender.includes('MOMO') && !sender.includes('MTN') && !sender.includes('Airtel')) {
+      return res.status(403).json({ success: false, message: "Unauthorized sender" });
+    }
+
+    // Extract numeric Amount using regex (flexible patterns)
+    const amountMatch = text.match(/(?:Amount|amount|UGX|balance|payment)\D*(\d+)/i);
+    if (!amountMatch) {
+      return res.status(400).json({ success: false, message: "Amount not found in SMS" });
+    }
+    const amount = Number(amountMatch[1]);
+
+    // Extract alphanumeric Transaction ID (e.g., PP260627.1245.B00122)
+    const transactionIdMatch = text.match(/\b[A-Z]{2}\d{6}\.\d{4,}\.[A-Z0-9]{6,}\b/i);
+    if (!transactionIdMatch) {
+      return res.status(400).json({ success: false, message: "Transaction ID not found in SMS" });
+    }
+    const transactionId = transactionIdMatch[0];
+
+    // Query Transactions collection for a 'Pending' document matching the exact extracted Amount
+    const transaction = await Transaction.findOne({
+      amount: amount,
+      status: 'Pending'
+    });
+
+    if (!transaction) {
+      return res.status(404).json({ success: false, message: "No matching pending transaction found" });
+    }
+
+    // Update transaction: status to 'Approved' and store the extracted Transaction ID
+    transaction.status = 'Approved';
+    transaction.transactionId = transactionId;
+    await transaction.save();
+
+    // Increment the corresponding user's walletBalance
+    await User.findByIdAndUpdate(transaction.userId, {
+      $inc: { walletBalance: transaction.amount }
+    });
+
+    res.status(200).json({ success: true, message: "Balance automatically credited" });
+  } catch (error) {
+    console.error('SMS Webhook Error:', error);
+    res.status(500).json({ success: false, message: "Error processing SMS webhook" });
+  }
 });
 
 const PORT = 5000;
