@@ -11,6 +11,20 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
+const getUserStateStorageKey = (userId) => `userState:${userId}`;
+
+const buildPersistedUser = (userData) => ({
+  ...userData,
+  walletBalance: userData.walletBalance ?? 0,
+  balanceAccount: userData.balanceAccount ?? 0,
+  referrals: userData.referrals ?? 0,
+  claimedMilestones: userData.claimedMilestones ?? [],
+  transactions: userData.transactions ?? [],
+  activeMachines: userData.activeMachines ?? [],
+  pendingDeposits: userData.pendingDeposits ?? [],
+  pendingWithdrawals: userData.pendingWithdrawals ?? []
+});
+
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -43,8 +57,10 @@ function Login() {
           pendingWithdrawals: []
         };
 
+        const persistedAdmin = buildPersistedUser(adminUser);
         localStorage.setItem('token', 'local-admin-token');
-        localStorage.setItem('user', JSON.stringify(adminUser));
+        localStorage.setItem('user', JSON.stringify(persistedAdmin));
+        localStorage.setItem(getUserStateStorageKey(persistedAdmin.id), JSON.stringify(persistedAdmin));
 
         alert('🔑 Access Granted! Welcome to the Admin Panel.');
         navigate('/admin-panel');
@@ -66,7 +82,7 @@ function Login() {
       if (response.status === 200) {
         const userPayload = data.user || data;
         const userRole = String(userPayload.role || data.role || 'user').toLowerCase();
-        const userData = {
+        const userData = buildPersistedUser({
           ...userPayload,
           id: userPayload.id || userPayload._id || data.id || email,
           username: userPayload.username || data.username || email.split('@')[0],
@@ -80,10 +96,11 @@ function Login() {
           activeMachines: userPayload.activeMachines ?? data.activeMachines ?? [],
           pendingDeposits: userPayload.pendingDeposits ?? data.pendingDeposits ?? [],
           pendingWithdrawals: userPayload.pendingWithdrawals ?? data.pendingWithdrawals ?? []
-        };
+        });
 
         localStorage.setItem('token', data.token || '');
         localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem(getUserStateStorageKey(userData.id), JSON.stringify(userData));
 
         alert('🔑 Access Granted! Welcome to the Terminal Dashboard.');
         navigate(userRole === 'admin' ? '/admin-panel' : '/dashboard');

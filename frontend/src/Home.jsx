@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 function PowerbankGraphic({ accentColor = '#00FF66' }) {
@@ -81,18 +81,31 @@ const getStoredUser = () => {
   }
 };
 
+const getUserStateStorageKey = (userId) => `userState:${userId}`;
+
+const getStoredUserState = (userId) => {
+  if (!userId) return null;
+  try {
+    const rawState = localStorage.getItem(getUserStateStorageKey(userId));
+    return rawState ? JSON.parse(rawState) : null;
+  } catch {
+    return null;
+  }
+};
+
 function Home() {
   const initialStoredUser = getStoredUser();
+  const initialStoredUserState = getStoredUserState(initialStoredUser?.id);
   const [user, setUser] = useState(initialStoredUser);
   const [activeTab, setActiveTab] = useState('home');
-  const [walletBalance, setWalletBalance] = useState(initialStoredUser?.walletBalance || 0);
-  const [balanceAccount, setBalanceAccount] = useState(initialStoredUser?.balanceAccount || 0);
-  const [referrals, setReferrals] = useState(initialStoredUser?.referrals || 0);
-  const [claimedList, setClaimedList] = useState(initialStoredUser?.claimedMilestones || []);
-  const [activeMachines, setActiveMachines] = useState(initialStoredUser?.activeMachines || []);
-  const [pendingDeposits, setPendingDeposits] = useState(initialStoredUser?.pendingDeposits || []);
-  const [pendingWithdrawals, setPendingWithdrawals] = useState(initialStoredUser?.pendingWithdrawals || []);
-  const [processedDepositIds, setProcessedDepositIds] = useState(initialStoredUser?.processedDepositIds || []);
+  const [walletBalance, setWalletBalance] = useState(initialStoredUserState?.walletBalance ?? initialStoredUser?.walletBalance ?? 0);
+  const [balanceAccount, setBalanceAccount] = useState(initialStoredUserState?.balanceAccount ?? initialStoredUser?.balanceAccount ?? 0);
+  const [referrals, setReferrals] = useState(initialStoredUserState?.referrals ?? initialStoredUser?.referrals ?? 0);
+  const [claimedList, setClaimedList] = useState(initialStoredUserState?.claimedMilestones ?? initialStoredUser?.claimedMilestones ?? []);
+  const [activeMachines, setActiveMachines] = useState(initialStoredUserState?.activeMachines ?? initialStoredUser?.activeMachines ?? []);
+  const [pendingDeposits, setPendingDeposits] = useState(initialStoredUserState?.pendingDeposits ?? initialStoredUser?.pendingDeposits ?? []);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState(initialStoredUserState?.pendingWithdrawals ?? initialStoredUser?.pendingWithdrawals ?? []);
+  const [processedDepositIds, setProcessedDepositIds] = useState(initialStoredUserState?.processedDepositIds ?? initialStoredUser?.processedDepositIds ?? []);
   const [now, setNow] = useState(Date.now());
 
   const [currentView, setCurrentView] = useState('dashboard');
@@ -163,9 +176,24 @@ function Home() {
     ]
   };
 
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState(initialStoredUserState?.transactions ?? initialStoredUser?.transactions ?? []);
 
   const navigate = useNavigate();
+  const latestStateRef = useRef(null);
+
+  useEffect(() => {
+    latestStateRef.current = {
+      user,
+      walletBalance,
+      balanceAccount,
+      activeMachines,
+      transactions,
+      claimedList,
+      pendingDeposits,
+      pendingWithdrawals,
+      processedDepositIds
+    };
+  }, [user, walletBalance, balanceAccount, activeMachines, transactions, claimedList, pendingDeposits, pendingWithdrawals, processedDepositIds]);
 
   // Live countdown tick - updates every 100ms for smooth countdown
   useEffect(() => {
@@ -211,18 +239,22 @@ function Home() {
           if (!depositId || processedDepositIds.includes(depositId)) return;
 
           const amount = Number(ad.amount);
-          setWalletBalance(prev => prev + amount);
-
+          const snapshot = latestStateRef.current || {};
+          const nextWallet = (snapshot.walletBalance ?? walletBalance) + amount;
           const newTxn = { id: `ADMIN-${depositId}`, type: 'Deposit', status: 'Approved', amount, date: new Date().toLocaleDateString() };
-          setTransactions(prev => [newTxn, ...prev]);
-
-          setProcessedDepositIds(prev => [...prev, depositId]);
-          setPendingDeposits(prev => prev.map(pd => {
+          const nextTransactions = [newTxn, ...(snapshot.transactions ?? transactions)];
+          const nextProcessedDepositIds = [...(snapshot.processedDepositIds ?? processedDepositIds), depositId];
+          const nextPendingDeposits = (snapshot.pendingDeposits ?? pendingDeposits).map(pd => {
             if (pd.processed) return pd;
             return { ...pd, processed: true, adminStatus: 'approved' };
-          }));
+          });
 
-          saveUserData(undefined, undefined, undefined, undefined, undefined, undefined, undefined);
+          setWalletBalance(nextWallet);
+          setTransactions(nextTransactions);
+          setProcessedDepositIds(nextProcessedDepositIds);
+          setPendingDeposits(nextPendingDeposits);
+
+          saveUserData(nextWallet, undefined, undefined, nextTransactions, undefined, nextPendingDeposits, undefined);
           showToast(`✅ Admin APPROVED your deposit of UGX ${amount.toLocaleString()}!`, 'success');
         });
       } catch (err) { /* admin server may be offline */ }
@@ -232,68 +264,6 @@ function Home() {
     return () => clearInterval(interval);
   }, [user, processedDepositIds]);
 
-  // POLLING: Check for approved/rejected withdrawals from admin
-  useEffect(() => {
-    const checkApprovedWithdrawals = async () => {
-      if (!user) return;
-      try {
-        const res = await fetch(`${ADMIN_API}/api/transactions?userId=${user.id}&type=withdraw&status=approved`);
-        if (!res.ok) return;
-        const approvedWithdrawals = await res.json();
-
-        approvedWithdrawals.forEach(aw => {
-          const alreadyProcessed = pendingWithdrawals.find(pw => pw.id === aw.id && pw.processed);
-          if (!alreadyProcessed) {
-            const amount = Number(aw.amount);
-
-            // Create a withdrawal transaction record
-            const newTxn = { id: `WTH-ADMIN-${aw.id}`, type: "Withdraw", status: "Approved", amount: amount, date: new Date().toLocaleDateString() };
-            setTransactions(prev => [newTxn, ...prev]);
-
-            setPendingWithdrawals(prev => prev.map(pw =>
-              pw.id === aw.id ? { ...pw, processed: true, adminStatus: 'approved' } : pw
-            ));
-
-            showToast(`✅ Admin APPROVED your withdrawal of UGX ${amount.toLocaleString()}! Sent to your mobile money.`, 'success');
-          }
-        });
-      } catch (err) { /* admin server may be offline */ }
-    };
-
-    const checkRejectedWithdrawals = async () => {
-      if (!user) return;
-      try {
-        const res = await fetch(`${ADMIN_API}/api/transactions?userId=${user.id}&type=withdraw&status=rejected`);
-        if (!res.ok) return;
-        const rejectedWithdrawals = await res.json();
-
-        rejectedWithdrawals.forEach(rw => {
-          const alreadyProcessed = pendingWithdrawals.find(pw => pw.id === rw.id && pw.processed);
-          if (!alreadyProcessed) {
-            // Refund the frozen amount back to balance account
-            const amount = Number(rw.amount);
-            const newBalance = balanceAccount + amount;
-            setBalanceAccount(newBalance);
-
-            const newTxn = { id: `WTH-REJ-${rw.id}`, type: "Withdraw", status: "Rejected", amount: amount, date: new Date().toLocaleDateString() };
-            setTransactions(prev => [newTxn, ...prev]);
-
-            setPendingWithdrawals(prev => prev.map(pw =>
-              pw.id === rw.id ? { ...pw, processed: true, adminStatus: 'rejected' } : pw
-            ));
-
-            showToast(`❌ Admin REJECTED your withdrawal of UGX ${amount.toLocaleString()}. Amount returned to Balance Account.`, 'error');
-          }
-        });
-      } catch (err) { /* admin server may be offline */ }
-    };
-
-    const interval = setInterval(() => {
-      checkApprovedWithdrawals();
-      checkRejectedWithdrawals();
-    }, 8000);
-    return () => clearInterval(interval);
-  }, [user, pendingWithdrawals, balanceAccount]);
 
   // Load user data on mount
   useEffect(() => {
@@ -303,17 +273,18 @@ function Home() {
       return;
     }
 
+    const persistedState = getStoredUserState(savedUser.id) || savedUser;
     setUser(savedUser);
-    setWalletBalance(savedUser.walletBalance || 0);
-    setBalanceAccount(savedUser.balanceAccount || 0);
-    setReferrals(savedUser.referrals || 0);
-    setClaimedList(savedUser.claimedMilestones || []);
-    setTransactions(savedUser.transactions || []);
-    setPendingDeposits(savedUser.pendingDeposits || []);
-    setPendingWithdrawals(savedUser.pendingWithdrawals || []);
-    setProcessedDepositIds(savedUser.processedDepositIds || []);
+    setWalletBalance(persistedState.walletBalance || 0);
+    setBalanceAccount(persistedState.balanceAccount || 0);
+    setReferrals(persistedState.referrals || 0);
+    setClaimedList(persistedState.claimedMilestones || []);
+    setTransactions(persistedState.transactions || []);
+    setPendingDeposits(persistedState.pendingDeposits || []);
+    setPendingWithdrawals(persistedState.pendingWithdrawals || []);
+    setProcessedDepositIds(persistedState.processedDepositIds || []);
 
-    const savedMachines = savedUser.activeMachines || [];
+    const savedMachines = persistedState.activeMachines || [];
     const machinesWithTime = savedMachines.map(m => ({
       ...m,
       purchasedAt: m.purchasedAt || new Date().toISOString(),
@@ -323,19 +294,25 @@ function Home() {
   }, [navigate]);
 
   const saveUserData = (newWallet, newBalance, newMachines, newTransactions, newClaimed, newPendingDeposits, newPendingWithdrawals) => {
-    if (!user) return;
+    const currentUser = user || latestStateRef.current?.user;
+    if (!currentUser?.id) return;
+
+    const snapshot = latestStateRef.current || {};
     const updatedUser = {
-      ...user,
-      walletBalance: newWallet !== undefined ? newWallet : walletBalance,
-      balanceAccount: newBalance !== undefined ? newBalance : balanceAccount,
-      activeMachines: newMachines !== undefined ? newMachines : activeMachines,
-      transactions: newTransactions !== undefined ? newTransactions : transactions,
-      claimedMilestones: newClaimed !== undefined ? newClaimed : claimedList,
-      pendingDeposits: newPendingDeposits !== undefined ? newPendingDeposits : pendingDeposits,
-      pendingWithdrawals: newPendingWithdrawals !== undefined ? newPendingWithdrawals : pendingWithdrawals,
-      processedDepositIds: processedDepositIds
+      ...currentUser,
+      walletBalance: newWallet !== undefined ? newWallet : snapshot.walletBalance ?? walletBalance,
+      balanceAccount: newBalance !== undefined ? newBalance : snapshot.balanceAccount ?? balanceAccount,
+      activeMachines: newMachines !== undefined ? newMachines : snapshot.activeMachines ?? activeMachines,
+      transactions: newTransactions !== undefined ? newTransactions : snapshot.transactions ?? transactions,
+      claimedMilestones: newClaimed !== undefined ? newClaimed : snapshot.claimedList ?? claimedList,
+      pendingDeposits: newPendingDeposits !== undefined ? newPendingDeposits : snapshot.pendingDeposits ?? pendingDeposits,
+      pendingWithdrawals: newPendingWithdrawals !== undefined ? newPendingWithdrawals : snapshot.pendingWithdrawals ?? pendingWithdrawals,
+      processedDepositIds: snapshot.processedDepositIds ?? processedDepositIds
     };
+
     localStorage.setItem('user', JSON.stringify(updatedUser));
+    localStorage.setItem(getUserStateStorageKey(currentUser.id), JSON.stringify(updatedUser));
+    setUser(updatedUser);
   };
 
   const referralLink = user ? `${window.location.origin}/register?ref=${user.id}` : "";
@@ -640,7 +617,11 @@ function Home() {
     }
   };
 
-  const handleLogout = () => { localStorage.removeItem('user'); navigate('/login'); };
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
 
   // =====================
   // TOAST COMPONENT
@@ -1049,7 +1030,11 @@ function Home() {
 
         {/* ========== REWARDS TAB ========== */}
         {activeTab === 'rewards' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.72)', backdropFilter: 'blur(2px)', borderRadius: '12px', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <span style={{ color: '#00FF66', fontSize: '28px', fontWeight: 'bold' }}>Coming Soon</span>
+              <span style={{ color: '#ddd', fontSize: '12px', textAlign: 'center' }}>Referral rewards will be enabled soon.</span>
+            </div>
             <div style={{ borderBottom: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', paddingBottom: '10px' }}>
               <h3 style={{ color: isDarkMode ? '#00FF66' : '#107C41', margin: 0 }}>REFERRAL REWARDS</h3>
               <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: '12px' }}>Invite friends — rewards go to Wallet</p>

@@ -66,6 +66,23 @@ export default function AdminPanel() {
     }
   };
 
+  const handleDecline = async (transactionId) => {
+    try {
+      setLoading(true);
+      setMessage('');
+      const res = await fetch(`${API_BASE_URL}/api/transactions/decline/${transactionId}`, { method: 'PUT' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Decline failed');
+      setMessage('❌ Deposit declined without crediting the wallet.');
+      fetchPendingTransactions();
+    } catch (err) {
+      console.error('Decline error:', err);
+      setMessage(`❌ ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', color: '#fff', backgroundColor: '#000', minHeight: '100vh' }}>
       <h2 style={{ color: '#00FF66' }}>Matrix System Control Node</h2>
@@ -96,13 +113,22 @@ export default function AdminPanel() {
               <div><strong>Amount:</strong> UGX {Number(tx.amount).toLocaleString()}</div>
               <div><strong>Transaction ID:</strong> {tx.transactionId || 'N/A'}</div>
               <div><strong>Merchant:</strong> {tx.merchantAccountName || 'N/A'} ({tx.merchantAccountNumber || 'N/A'})</div>
-              <button
-                onClick={() => handleApprove(tx._id)}
-                disabled={loading}
-                style={{ marginTop: '10px', backgroundColor: '#00FF66', color: '#000', border: 'none', padding: '10px 14px', borderRadius: '6px', fontWeight: 'bold', cursor: loading ? 'default' : 'pointer' }}
-              >
-                Approve
-              </button>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button
+                  onClick={() => handleApprove(tx._id)}
+                  disabled={loading}
+                  style={{ backgroundColor: '#00FF66', color: '#000', border: 'none', padding: '10px 14px', borderRadius: '6px', fontWeight: 'bold', cursor: loading ? 'default' : 'pointer' }}
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => handleDecline(tx._id)}
+                  disabled={loading}
+                  style={{ backgroundColor: '#ff4444', color: '#fff', border: 'none', padding: '10px 14px', borderRadius: '6px', fontWeight: 'bold', cursor: loading ? 'default' : 'pointer' }}
+                >
+                  Decline
+                </button>
+              </div>
             </div>
           ))}
         </div>
