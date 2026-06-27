@@ -56,7 +56,7 @@ function getProductTotalReturn(product) {
   return calculateTotalReturn(product.price, product.classTier);
 }
 
-const ADMIN_API = 'https://asset-management-55t5.onrender.com/api';
+const ADMIN_API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:5000';
 
 const depositAccounts = [
   { number: '0760704907', name: 'Hadijah Nakatte' },
@@ -350,26 +350,43 @@ function Home() {
     const amount = Number(depositAmount);
     if (!amount || amount <= 0) return showToast("❌ Enter a valid amount.", 'error');
     if (!paymentId || !paymentId.trim()) return showToast("❌ Enter the payment ID.", 'error');
+    if (!user?.id) return showToast("❌ You need to be logged in to submit a deposit.", 'error');
 
-    // Immediately credit user's wallet with the entered amount
-    const newWallet = walletBalance + amount;
-    setWalletBalance(newWallet);
+    try {
+      const response = await fetch(`${ADMIN_API}/api/account/deposit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          amount,
+          transactionId: paymentId.trim()
+        })
+      });
 
-    const newTxn = { id: `DEP-${Math.floor(1000 + Math.random() * 9000)}`, type: "Deposit", status: "Success", amount: amount, date: new Date().toLocaleDateString() };
-    const newTransactions = [newTxn, ...transactions];
-    setTransactions(newTransactions);
+      const data = await response.json().catch(() => ({}));
 
-    // Optionally track as a processed pending deposit entry for history
-    const processedDeposit = { id: `LOCAL-${Date.now()}`, amount, type: 'deposit', processed: true, adminStatus: 'approved', paymentId: paymentId.trim() };
-    const newPendingDeposits = [...pendingDeposits, processedDeposit];
-    setPendingDeposits(newPendingDeposits);
+      if (!response.ok) {
+        throw new Error(data.message || 'Deposit submission failed');
+      }
 
-    saveUserData(newWallet, undefined, undefined, newTransactions, undefined, newPendingDeposits, undefined);
+      const newTxn = { id: `DEP-${Math.floor(1000 + Math.random() * 9000)}`, type: 'Deposit', status: 'Pending', amount, date: new Date().toLocaleDateString() };
+      const newTransactions = [newTxn, ...transactions];
+      setTransactions(newTransactions);
 
-    showToast(`✅ UGX ${amount.toLocaleString()} credited to Wallet.`, 'success');
-    setDepositAmount('');
-    setPaymentId('');
-    setCurrentView('dashboard');
+      const processedDeposit = { id: `SERVER-${Date.now()}`, amount, type: 'deposit', processed: false, adminStatus: 'pending', paymentId: paymentId.trim() };
+      const newPendingDeposits = [...pendingDeposits, processedDeposit];
+      setPendingDeposits(newPendingDeposits);
+
+      saveUserData(undefined, undefined, undefined, newTransactions, undefined, newPendingDeposits, undefined);
+
+      showToast('✅ Deposit submitted for admin verification.', 'success');
+      setDepositAmount('');
+      setPaymentId('');
+      setCurrentView('dashboard');
+    } catch (err) {
+      console.error('Deposit submission error:', err);
+      showToast(`❌ ${err.message}`, 'error');
+    }
   };
 
   const handleDepositNext = () => {
