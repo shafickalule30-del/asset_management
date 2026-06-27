@@ -92,6 +92,7 @@ function Home() {
   const [activeMachines, setActiveMachines] = useState(initialStoredUser?.activeMachines || []);
   const [pendingDeposits, setPendingDeposits] = useState(initialStoredUser?.pendingDeposits || []);
   const [pendingWithdrawals, setPendingWithdrawals] = useState(initialStoredUser?.pendingWithdrawals || []);
+  const [processedDepositIds, setProcessedDepositIds] = useState(initialStoredUser?.processedDepositIds || []);
   const [now, setNow] = useState(Date.now());
 
   const [currentView, setCurrentView] = useState('dashboard');
@@ -206,28 +207,30 @@ function Home() {
         const approvedDeposits = await res.json();
 
         approvedDeposits.forEach(ad => {
-          const alreadyProcessed = pendingDeposits.find(pd => pd.id === ad.id && pd.processed);
-          if (!alreadyProcessed) {
-            const amount = Number(ad.amount);
-            const newWallet = walletBalance + amount;
-            setWalletBalance(newWallet);
+          const depositId = ad._id || ad.id;
+          if (!depositId || processedDepositIds.includes(depositId)) return;
 
-            const newTxn = { id: `ADMIN-${ad.id}`, type: "Deposit", status: "Approved", amount: amount, date: new Date().toLocaleDateString() };
-            setTransactions(prev => [newTxn, ...prev]);
+          const amount = Number(ad.amount);
+          setWalletBalance(prev => prev + amount);
 
-            setPendingDeposits(prev => prev.map(pd =>
-              pd.id === ad.id ? { ...pd, processed: true, adminStatus: 'approved' } : pd
-            ));
+          const newTxn = { id: `ADMIN-${depositId}`, type: 'Deposit', status: 'Approved', amount, date: new Date().toLocaleDateString() };
+          setTransactions(prev => [newTxn, ...prev]);
 
-            showToast(`✅ Admin APPROVED your deposit of UGX ${amount.toLocaleString()}!`, 'success');
-          }
+          setProcessedDepositIds(prev => [...prev, depositId]);
+          setPendingDeposits(prev => prev.map(pd => {
+            if (pd.processed) return pd;
+            return { ...pd, processed: true, adminStatus: 'approved' };
+          }));
+
+          saveUserData(undefined, undefined, undefined, undefined, undefined, undefined, undefined);
+          showToast(`✅ Admin APPROVED your deposit of UGX ${amount.toLocaleString()}!`, 'success');
         });
       } catch (err) { /* admin server may be offline */ }
     };
 
     const interval = setInterval(checkApprovedDeposits, 8000);
     return () => clearInterval(interval);
-  }, [user, pendingDeposits, walletBalance]);
+  }, [user, processedDepositIds]);
 
   // POLLING: Check for approved/rejected withdrawals from admin
   useEffect(() => {
@@ -308,6 +311,7 @@ function Home() {
     setTransactions(savedUser.transactions || []);
     setPendingDeposits(savedUser.pendingDeposits || []);
     setPendingWithdrawals(savedUser.pendingWithdrawals || []);
+    setProcessedDepositIds(savedUser.processedDepositIds || []);
 
     const savedMachines = savedUser.activeMachines || [];
     const machinesWithTime = savedMachines.map(m => ({
@@ -328,7 +332,8 @@ function Home() {
       transactions: newTransactions !== undefined ? newTransactions : transactions,
       claimedMilestones: newClaimed !== undefined ? newClaimed : claimedList,
       pendingDeposits: newPendingDeposits !== undefined ? newPendingDeposits : pendingDeposits,
-      pendingWithdrawals: newPendingWithdrawals !== undefined ? newPendingWithdrawals : pendingWithdrawals
+      pendingWithdrawals: newPendingWithdrawals !== undefined ? newPendingWithdrawals : pendingWithdrawals,
+      processedDepositIds: processedDepositIds
     };
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };
