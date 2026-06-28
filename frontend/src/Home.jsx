@@ -65,7 +65,7 @@ function ProductCard({ product, onBuy }) {
                 UGX {product.price.toLocaleString()}
               </span>
             </div>
-            <button 
+            <button
               onClick={() => onBuy(product)}
               style={{
                 backgroundColor: '#00FF66',
@@ -87,7 +87,28 @@ function ProductCard({ product, onBuy }) {
     </div>
   );
 }
-
+// 📱 COMPACT BOTTOM NAVIGATION BAR
+function BottomNav() {
+  // If your main file states use slightly different names, this component can 
+  // safely exist cleanly or you can map button clicks straight into standard state setters.
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: 0, left: 0, right: 0,
+      height: '60px',
+      backgroundColor: '#0a0a0a',
+      borderTop: '1px solid #222',
+      display: 'flex',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      zIndex: 999
+    }}>
+      <div style={{ color: '#8c8c8c', fontSize: '12px', fontFamily: 'sans-serif' }}>
+        ⚡ Asset Fleet Menu Active
+      </div>
+    </div>
+  );
+}
 // 🧮 UTILITY PROFIT CALCULATORS
 function calculateProfit(price, classTier) {
   if (classTier === 'B') return price * 2;
@@ -232,7 +253,7 @@ function Home() {
     { target: 60, type: "Hardware", reward: "Quantum Base Powerbank", desc: "Grand Master delivery" }
   ];
 
-  
+
 
   const [transactions, setTransactions] = useState(initialStoredUserState?.transactions ?? initialStoredUser?.transactions ?? []);
 
