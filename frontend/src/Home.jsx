@@ -129,6 +129,8 @@ function Home() {
   const [activeTab, setActiveTab] = useState('home');
   // For toasts/alerts in-app
   const [toast, setToast] = useState(null);
+  // Automatically filter the powerbanks based on the selected class tab (A, B, or C)
+  const filteredProducts = powerbankCatalog[selectedClass] || [];
 
   const showToast = (msg, type = 'info') => {
     setToast({ msg, type });
