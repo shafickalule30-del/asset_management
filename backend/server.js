@@ -289,7 +289,22 @@ app.get('/api/transactions', async (req, res) => {
   }
 });
 
-// 6. WITHDRAW ROUTE
+// 6. ADMIN DECLINE ROUTE
+app.put('/api/transactions/decline/:id', async (req, res) => {
+  try {
+    const targetReceipt = await Transaction.findById(req.params.id);
+    if (!targetReceipt || targetReceipt.status !== 'Pending') {
+      return res.status(400).json({ message: "Transaction statement processed or unlisted." });
+    }
+
+    targetReceipt.status = 'Rejected';
+    await targetReceipt.save();
+
+    res.status(200).json({ message: "Deposit request was declined without crediting the wallet." });
+  } catch (error) { res.status(500).json({ message: "Execution error during decline action." }); }
+});
+
+// 7. WITHDRAW ROUTE
 app.post('/api/account/withdraw', async (req, res) => {
   try {
     const { userId, amount } = req.body;
@@ -301,7 +316,7 @@ app.post('/api/account/withdraw', async (req, res) => {
   } catch (error) { res.status(500).json({ message: "Withdrawal processing error" }); }
 });
 
-// 7. RE-ENGINEERED PRODUCT PROCUREMENT
+// 8. RE-ENGINEERED PRODUCT PROCUREMENT
 app.post('/api/account/buy', async (req, res) => {
   try {
     const { userId, productName, price, classTier, targetDays } = req.body;
@@ -342,7 +357,7 @@ app.post('/api/account/buy', async (req, res) => {
   }
 });
 
-// 8. MILESTONE REWARD CLAIM ROUTE
+// 9. MILESTONE REWARD CLAIM ROUTE
 app.post('/api/account/claim-reward', async (req, res) => {
   try {
     const { userId, milestone } = req.body;
