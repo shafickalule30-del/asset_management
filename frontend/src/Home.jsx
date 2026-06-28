@@ -107,8 +107,11 @@ function Home() {
   const [processedDepositIds, setProcessedDepositIds] = useState(initialStoredUserState?.processedDepositIds ?? initialStoredUser?.processedDepositIds ?? []);
   const [now, setNow] = useState(Date.now());
 
+  // 1. CHOOSE VIEW AND CLASS FIRST
   const [currentView, setCurrentView] = useState('dashboard');
-  const [selectedClass, setSelectedClass] = useState('A');
+  const [selectedClass, setSelectedClass] = useState('A'); // <-- Must be initialized first!
+
+  // 2. OTHER INTERFACE STATES
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [completedMachine, setCompletedMachine] = useState(null);
@@ -127,16 +130,15 @@ function Home() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [currentAccount, setCurrentAccount] = useState(depositAccounts[0]);
   const [activeTab, setActiveTab] = useState('home');
-  // For toasts/alerts in-app
   const [toast, setToast] = useState(null);
-  // Automatically filter the powerbanks based on the selected class tab (A, B, or C)
+
+  // 3. NOW IT IS SAFE TO FILTER (Because selectedClass and powerbankCatalog exist!)
   const filteredProducts = powerbankCatalog[selectedClass] || [];
 
   const showToast = (msg, type = 'info') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 4000);
   };
-
   const rewardsRoadmap = [
     { target: 2, type: "Cash", reward: "UGX 3,000", desc: "Kickstart bonus" },
     { target: 5, type: "Cash", reward: "UGX 10,000", desc: "Standard tier bonus" },
