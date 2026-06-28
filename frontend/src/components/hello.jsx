@@ -72,34 +72,7 @@ const depositAccounts = [
   { number: '0750682508', name: 'Kakembo David' }
 ];
 
-const powerbankCatalog = {
-    A: [
-      { id: "A-01", name: "Class A - Machine 1", price: 2000, days: 30, classTier: 'A', desc: "Cost 2,000. Get 20,000 in 30 days.", imgColor: "#00FF66", profit: 18000, totalReturn: 20000 },
-      { id: "A-02", name: "Class A - Machine 2", price: 5000, days: 30, classTier: 'A', desc: "Cost 5,000. Get 50,000 in 30 days.", imgColor: "#00FF99", profit: 45000, totalReturn: 50000 },
-      { id: "A-03", name: "Class A - Machine 3", price: 10000, days: 40, classTier: 'A', desc: "Cost 10,000. Get 125,000 in 40 days.", imgColor: "#33FF66", profit: 115000, totalReturn: 125000 },
-      { id: "A-04", name: "Class A - Machine 4", price: 20000, days: 60, classTier: 'A', desc: "Cost 20,000. Get 250,000 in 60 days.", imgColor: "#107C41", profit: 230000, totalReturn: 250000 }
-    ],
-    B: [
-      { id: "B-01", name: "Delta Prime 20K", price: 75000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 225,000.", imgColor: "#00BCFF" },
-      { id: "B-02", name: "Delta Nitro 25K", price: 88000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 264,000.", imgColor: "#0099FF" },
-      { id: "B-03", name: "Delta Combat 30K", price: 105000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 315,000.", imgColor: "#0066CC" },
-      { id: "B-04", name: "Delta Matrix Ultra", price: 120000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 360,000.", imgColor: "#1F4E79" }
-    ],
-    C: [
-      { id: "C-01", name: "Quantum Base 40K", price: 140000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 560,000.", imgColor: "#FFD700" },
-      { id: "C-02", name: "Quantum Solar 50K", price: 175000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 700,000.", imgColor: "#DAA520" },
-      { id: "C-03", name: "Quantum Command 60K", price: 210000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 840,000.", imgColor: "#B8860B" },
-      { id: "C-04", name: "Quantum Nexus Tower", price: 260000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 1,040,000.", imgColor: "#8B6508" }
-    ],
-    D: [
-      { id: "D-01", name: "Elite Prime 30K", price: 30000, days: 100, classTier: 'D', desc: "100 days. 1566% profit. Return UGX 500,000.", imgColor: "#FF1493", profit: 470000, totalReturn: 500000 },
-      { id: "D-02", name: "Elite Pro 50K", price: 50000, days: 100, classTier: 'D', desc: "100 days. 1600% profit. Return UGX 850,000.", imgColor: "#FF69B4", profit: 800000, totalReturn: 850000 },
-      { id: "D-03", name: "Elite Ultra 75K", price: 75000, days: 100, classTier: 'D', desc: "100 days. 1233% profit. Return UGX 1,000,000.", imgColor: "#FF00FF", profit: 925000, totalReturn: 1000000 },
-      { id: "D-04", name: "Elite Quantum 100K", price: 100000, days: 100, classTier: 'D', desc: "100 days. 1400% profit. Return UGX 1,500,000.", imgColor: "#9D4EDD", profit: 1400000, totalReturn: 1500000 }
-    ]
-  };
-
-  const getStoredUser = () => {
+const getStoredUser = () => {
   try {
     const rawUser = localStorage.getItem('user');
     return rawUser ? JSON.parse(rawUser) : null;
@@ -179,7 +152,32 @@ function Home() {
     { target: 60, type: "Hardware", reward: "Quantum Base Powerbank", desc: "Grand Master delivery" }
   ];
 
-  
+  const powerbankCatalog = {
+    A: [
+      { id: "A-01", name: "Class A - Machine 1", price: 2000, days: 30, classTier: 'A', desc: "Cost 2,000. Get 20,000 in 30 days.", imgColor: "#00FF66", profit: 18000, totalReturn: 20000 },
+      { id: "A-02", name: "Class A - Machine 2", price: 5000, days: 30, classTier: 'A', desc: "Cost 5,000. Get 50,000 in 30 days.", imgColor: "#00FF99", profit: 45000, totalReturn: 50000 },
+      { id: "A-03", name: "Class A - Machine 3", price: 10000, days: 40, classTier: 'A', desc: "Cost 10,000. Get 125,000 in 40 days.", imgColor: "#33FF66", profit: 115000, totalReturn: 125000 },
+      { id: "A-04", name: "Class A - Machine 4", price: 20000, days: 60, classTier: 'A', desc: "Cost 20,000. Get 250,000 in 60 days.", imgColor: "#107C41", profit: 230000, totalReturn: 250000 }
+    ],
+    B: [
+      { id: "B-01", name: "Delta Prime 20K", price: 75000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 225,000.", imgColor: "#00BCFF" },
+      { id: "B-02", name: "Delta Nitro 25K", price: 88000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 264,000.", imgColor: "#0099FF" },
+      { id: "B-03", name: "Delta Combat 30K", price: 105000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 315,000.", imgColor: "#0066CC" },
+      { id: "B-04", name: "Delta Matrix Ultra", price: 120000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 360,000.", imgColor: "#1F4E79" }
+    ],
+    C: [
+      { id: "C-01", name: "Quantum Base 40K", price: 140000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 560,000.", imgColor: "#FFD700" },
+      { id: "C-02", name: "Quantum Solar 50K", price: 175000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 700,000.", imgColor: "#DAA520" },
+      { id: "C-03", name: "Quantum Command 60K", price: 210000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 840,000.", imgColor: "#B8860B" },
+      { id: "C-04", name: "Quantum Nexus Tower", price: 260000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 1,040,000.", imgColor: "#8B6508" }
+    ],
+    D: [
+      { id: "D-01", name: "Elite Prime 30K", price: 30000, days: 100, classTier: 'D', desc: "100 days. 1566% profit. Return UGX 500,000.", imgColor: "#FF1493", profit: 470000, totalReturn: 500000 },
+      { id: "D-02", name: "Elite Pro 50K", price: 50000, days: 100, classTier: 'D', desc: "100 days. 1600% profit. Return UGX 850,000.", imgColor: "#FF69B4", profit: 800000, totalReturn: 850000 },
+      { id: "D-03", name: "Elite Ultra 75K", price: 75000, days: 100, classTier: 'D', desc: "100 days. 1233% profit. Return UGX 1,000,000.", imgColor: "#FF00FF", profit: 925000, totalReturn: 1000000 },
+      { id: "D-04", name: "Elite Quantum 100K", price: 100000, days: 100, classTier: 'D', desc: "100 days. 1400% profit. Return UGX 1,500,000.", imgColor: "#9D4EDD", profit: 1400000, totalReturn: 1500000 }
+    ]
+  };
 
   const [transactions, setTransactions] = useState(initialStoredUserState?.transactions ?? initialStoredUser?.transactions ?? []);
 
