@@ -126,7 +126,7 @@ function Home() {
   const [withdrawNetwork, setWithdrawNetwork] = useState('MTN');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [currentAccount, setCurrentAccount] = useState(depositAccounts[0]);
-
+  const [activeTab, setActiveTab] = useState('home');
   // For toasts/alerts in-app
   const [toast, setToast] = useState(null);
 
