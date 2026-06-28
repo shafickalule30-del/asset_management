@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// 🔋 POWERBANK GRAPHIC ASSET
 function PowerbankGraphic({ accentColor = '#00FF66' }) {
   return (
     <div style={{
@@ -37,79 +36,6 @@ function PowerbankGraphic({ accentColor = '#00FF66' }) {
   );
 }
 
-// 👑 NEW: ADDING THE MISSING PRODUCT CARD LAYOUT TO PREVENT REFERENCE ERROR
-function ProductCard({ product, onBuy }) {
-  return (
-    <div style={{
-      background: 'linear-gradient(135deg, #141414 0%, #0a0a0a 100%)',
-      border: '1px solid #222',
-      borderRadius: '14px',
-      padding: '16px',
-      marginBottom: '16px',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-      transition: 'all 0.3s ease'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <PowerbankGraphic accentColor={product.imgColor || '#00FF66'} />
-        <div style={{ flex: 1 }}>
-          <h4 style={{ margin: '0 0 4px 0', color: '#fff', fontSize: '16px', fontWeight: 'bold', letterSpacing: '0.5px' }}>
-            {product.name}
-          </h4>
-          <p style={{ margin: '0 0 12px 0', color: '#8c8c8c', fontSize: '12px', lineHeight: '1.4' }}>
-            {product.desc}
-          </p>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <span style={{ color: '#8c8c8c', fontSize: '10px', display: 'block', textTransform: 'uppercase' }}>Lease Cost</span>
-              <span style={{ color: '#00FF66', fontWeight: '800', fontSize: '15px' }}>
-                UGX {product.price.toLocaleString()}
-              </span>
-            </div>
-            <button
-              onClick={() => onBuy(product)}
-              style={{
-                backgroundColor: '#00FF66',
-                color: '#000',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                fontWeight: 'bold',
-                fontSize: '13px',
-                cursor: 'pointer',
-                boxShadow: '0 0 12px rgba(0,255,102,0.3)'
-              }}
-            >
-              Lease Machine
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-// 📱 COMPACT BOTTOM NAVIGATION BAR
-function BottomNav() {
-  // If your main file states use slightly different names, this component can 
-  // safely exist cleanly or you can map button clicks straight into standard state setters.
-  return (
-    <div style={{
-      position: 'fixed',
-      bottom: 0, left: 0, right: 0,
-      height: '60px',
-      backgroundColor: '#0a0a0a',
-      borderTop: '1px solid #222',
-      display: 'flex',
-      justifyContent: 'space-around',
-      alignItems: 'center',
-      zIndex: 999
-    }}>
-      <div style={{ color: '#8c8c8c', fontSize: '12px', fontFamily: 'sans-serif' }}>
-        ⚡ Asset Fleet Menu Active
-      </div>
-    </div>
-  );
-}
-// 🧮 UTILITY PROFIT CALCULATORS
 function calculateProfit(price, classTier) {
   if (classTier === 'B') return price * 2;
   if (classTier === 'C') return price * 3;
@@ -146,33 +72,6 @@ const depositAccounts = [
   { number: '0750682508', name: 'Kakembo David' }
 ];
 
-const powerbankCatalog = {
-  A: [
-    { id: "A-01", name: "Class A - Machine 1", price: 2000, days: 30, classTier: 'A', desc: "Cost 2,000. Get 20,000 in 30 days.", imgColor: "#00FF66", profit: 18000, totalReturn: 20000 },
-    { id: "A-02", name: "Class A - Machine 2", price: 5000, days: 30, classTier: 'A', desc: "Cost 5,000. Get 50,000 in 30 days.", imgColor: "#00FF99", profit: 45000, totalReturn: 50000 },
-    { id: "A-03", name: "Class A - Machine 3", price: 10000, days: 40, classTier: 'A', desc: "Cost 10,000. Get 125,000 in 40 days.", imgColor: "#33FF66", profit: 115000, totalReturn: 125000 },
-    { id: "A-04", name: "Class A - Machine 4", price: 20000, days: 60, classTier: 'A', desc: "Cost 20,000. Get 250,000 in 60 days.", imgColor: "#107C41", profit: 230000, totalReturn: 250000 }
-  ],
-  B: [
-    { id: "B-01", name: "Delta Prime 20K", price: 75000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 225,000.", imgColor: "#00BCFF" },
-    { id: "B-02", name: "Delta Nitro 25K", price: 88000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 264,000.", imgColor: "#0099FF" },
-    { id: "B-03", name: "Delta Combat 30K", price: 105000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 315,000.", imgColor: "#0066CC" },
-    { id: "B-04", name: "Delta Matrix Ultra", price: 120000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 360,000.", imgColor: "#1F4E79" }
-  ],
-  C: [
-    { id: "C-01", name: "Quantum Base 40K", price: 140000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 560,000.", imgColor: "#FFD700" },
-    { id: "C-02", name: "Quantum Solar 50K", price: 175000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 700,000.", imgColor: "#DAA520" },
-    { id: "C-03", name: "Quantum Command 60K", price: 210000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 840,000.", imgColor: "#B8860B" },
-    { id: "C-04", name: "Quantum Nexus Tower", price: 260000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 1,040,000.", imgColor: "#8B6508" }
-  ],
-  D: [
-    { id: "D-01", name: "Elite Prime 30K", price: 30000, days: 100, classTier: 'D', desc: "100 days. 1566% profit. Return UGX 500,000.", imgColor: "#FF1493", profit: 470000, totalReturn: 500000 },
-    { id: "D-02", name: "Elite Pro 50K", price: 50000, days: 100, classTier: 'D', desc: "100 days. 1600% profit. Return UGX 850,000.", imgColor: "#FF69B4", profit: 800000, totalReturn: 850000 },
-    { id: "D-03", name: "Elite Ultra 75K", price: 75000, days: 100, classTier: 'D', desc: "100 days. 1233% profit. Return UGX 1,000,000.", imgColor: "#FF00FF", profit: 925000, totalReturn: 1000000 },
-    { id: "D-04", name: "Elite Quantum 100K", price: 100000, days: 100, classTier: 'D', desc: "100 days. 1400% profit. Return UGX 1,500,000.", imgColor: "#9D4EDD", profit: 1400000, totalReturn: 1500000 }
-  ]
-};
-
 const getStoredUser = () => {
   try {
     const rawUser = localStorage.getItem('user');
@@ -198,6 +97,7 @@ function Home() {
   const initialStoredUser = getStoredUser();
   const initialStoredUserState = getStoredUserState(initialStoredUser?.id);
   const [user, setUser] = useState(initialStoredUser);
+  const [activeTab, setActiveTab] = useState('home');
   const [walletBalance, setWalletBalance] = useState(initialStoredUserState?.walletBalance ?? initialStoredUser?.walletBalance ?? 0);
   const [balanceAccount, setBalanceAccount] = useState(initialStoredUserState?.balanceAccount ?? initialStoredUser?.balanceAccount ?? 0);
   const [referrals, setReferrals] = useState(initialStoredUserState?.referrals ?? initialStoredUser?.referrals ?? 0);
@@ -208,11 +108,8 @@ function Home() {
   const [processedDepositIds, setProcessedDepositIds] = useState(initialStoredUserState?.processedDepositIds ?? initialStoredUser?.processedDepositIds ?? []);
   const [now, setNow] = useState(Date.now());
 
-  // 1. CHOOSE VIEW AND CLASS FIRST
   const [currentView, setCurrentView] = useState('dashboard');
-  const [selectedClass, setSelectedClass] = useState('A'); // <-- Must be initialized first!
-
-  // 2. OTHER INTERFACE STATES
+  const [selectedClass, setSelectedClass] = useState('A');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [completedMachine, setCompletedMachine] = useState(null);
@@ -230,16 +127,15 @@ function Home() {
   const [withdrawNetwork, setWithdrawNetwork] = useState('MTN');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [currentAccount, setCurrentAccount] = useState(depositAccounts[0]);
-  const [activeTab, setActiveTab] = useState('home');
-  const [toast, setToast] = useState(null);
 
-  // 3. NOW IT IS SAFE TO FILTER (Because selectedClass and powerbankCatalog exist!)
-  const filteredProducts = powerbankCatalog[selectedClass] || [];
+  // For toasts/alerts in-app
+  const [toast, setToast] = useState(null);
 
   const showToast = (msg, type = 'info') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 4000);
   };
+
   const rewardsRoadmap = [
     { target: 2, type: "Cash", reward: "UGX 3,000", desc: "Kickstart bonus" },
     { target: 5, type: "Cash", reward: "UGX 10,000", desc: "Standard tier bonus" },
@@ -253,7 +149,32 @@ function Home() {
     { target: 60, type: "Hardware", reward: "Quantum Base Powerbank", desc: "Grand Master delivery" }
   ];
 
-
+  const powerbankCatalog = {
+    A: [
+      { id: "A-01", name: "Class A - Machine 1", price: 2000, days: 30, classTier: 'A', desc: "Cost 2,000. Get 20,000 in 30 days.", imgColor: "#00FF66", profit: 18000, totalReturn: 20000 },
+      { id: "A-02", name: "Class A - Machine 2", price: 5000, days: 30, classTier: 'A', desc: "Cost 5,000. Get 50,000 in 30 days.", imgColor: "#00FF99", profit: 45000, totalReturn: 50000 },
+      { id: "A-03", name: "Class A - Machine 3", price: 10000, days: 40, classTier: 'A', desc: "Cost 10,000. Get 125,000 in 40 days.", imgColor: "#33FF66", profit: 115000, totalReturn: 125000 },
+      { id: "A-04", name: "Class A - Machine 4", price: 20000, days: 60, classTier: 'A', desc: "Cost 20,000. Get 250,000 in 60 days.", imgColor: "#107C41", profit: 230000, totalReturn: 250000 }
+    ],
+    B: [
+      { id: "B-01", name: "Delta Prime 20K", price: 75000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 225,000.", imgColor: "#00BCFF" },
+      { id: "B-02", name: "Delta Nitro 25K", price: 88000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 264,000.", imgColor: "#0099FF" },
+      { id: "B-03", name: "Delta Combat 30K", price: 105000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 315,000.", imgColor: "#0066CC" },
+      { id: "B-04", name: "Delta Matrix Ultra", price: 120000, days: 45, classTier: 'B', desc: "45 days. 200% profit. Return UGX 360,000.", imgColor: "#1F4E79" }
+    ],
+    C: [
+      { id: "C-01", name: "Quantum Base 40K", price: 140000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 560,000.", imgColor: "#FFD700" },
+      { id: "C-02", name: "Quantum Solar 50K", price: 175000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 700,000.", imgColor: "#DAA520" },
+      { id: "C-03", name: "Quantum Command 60K", price: 210000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 840,000.", imgColor: "#B8860B" },
+      { id: "C-04", name: "Quantum Nexus Tower", price: 260000, days: 60, classTier: 'C', desc: "60 days. 300% profit. Return UGX 1,040,000.", imgColor: "#8B6508" }
+    ],
+    D: [
+      { id: "D-01", name: "Elite Prime 30K", price: 30000, days: 100, classTier: 'D', desc: "100 days. 1566% profit. Return UGX 500,000.", imgColor: "#FF1493", profit: 470000, totalReturn: 500000 },
+      { id: "D-02", name: "Elite Pro 50K", price: 50000, days: 100, classTier: 'D', desc: "100 days. 1600% profit. Return UGX 850,000.", imgColor: "#FF69B4", profit: 800000, totalReturn: 850000 },
+      { id: "D-03", name: "Elite Ultra 75K", price: 75000, days: 100, classTier: 'D', desc: "100 days. 1233% profit. Return UGX 1,000,000.", imgColor: "#FF00FF", profit: 925000, totalReturn: 1000000 },
+      { id: "D-04", name: "Elite Quantum 100K", price: 100000, days: 100, classTier: 'D', desc: "100 days. 1400% profit. Return UGX 1,500,000.", imgColor: "#9D4EDD", profit: 1400000, totalReturn: 1500000 }
+    ]
+  };
 
   const [transactions, setTransactions] = useState(initialStoredUserState?.transactions ?? initialStoredUser?.transactions ?? []);
 
@@ -305,9 +226,6 @@ function Home() {
   }, [now, activeMachines, showCompletionModal]);
 
   // POLLING: Check for approved deposits from admin
-  // FIXED: Uses a ref to track processed IDs to prevent double-crediting
-  const processedIdsRef = useRef(initialStoredUserState?.processedDepositIds ?? initialStoredUser?.processedDepositIds ?? []);
-
   useEffect(() => {
     const checkApprovedDeposits = async () => {
       if (!user) return;
@@ -316,107 +234,43 @@ function Home() {
         if (!res.ok) return;
         const approvedDeposits = await res.json();
 
-        let anyChanges = false;
-        let nextWallet = walletBalance;
-        let nextTransactions = [...transactions];
-        let nextProcessedIds = [...processedIdsRef.current];
-        let nextPendingDeposits = [...pendingDeposits];
-
         approvedDeposits.forEach(ad => {
           const depositId = ad._id || ad.id;
-          if (!depositId || nextProcessedIds.includes(depositId)) return;
+          if (!depositId || processedDepositIds.includes(depositId)) return;
 
           const amount = Number(ad.amount);
-          nextWallet += amount;
-          nextProcessedIds.push(depositId);
-          nextTransactions.unshift({
-            id: `ADMIN-${depositId}`,
-            type: 'Deposit',
-            status: 'Approved',
-            amount,
-            date: new Date().toLocaleDateString()
-          });
-          nextPendingDeposits = nextPendingDeposits.map(pd => {
+          const snapshot = latestStateRef.current || {};
+          const nextWallet = (snapshot.walletBalance ?? walletBalance) + amount;
+          const newTxn = { id: `ADMIN-${depositId}`, type: 'Deposit', status: 'Approved', amount, date: new Date().toLocaleDateString() };
+          const nextTransactions = [newTxn, ...(snapshot.transactions ?? transactions)];
+          const nextProcessedDepositIds = [...(snapshot.processedDepositIds ?? processedDepositIds), depositId];
+          const nextPendingDeposits = (snapshot.pendingDeposits ?? pendingDeposits).map(pd => {
             if (pd.processed) return pd;
             return { ...pd, processed: true, adminStatus: 'approved' };
           });
 
-          anyChanges = true;
-        });
-
-        if (anyChanges) {
           setWalletBalance(nextWallet);
           setTransactions(nextTransactions);
-          setProcessedDepositIds(nextProcessedIds);
+          setProcessedDepositIds(nextProcessedDepositIds);
           setPendingDeposits(nextPendingDeposits);
-          processedIdsRef.current = nextProcessedIds;
 
-          // Save to localStorage immediately
-          const currentUser = user || latestStateRef.current?.user;
-          if (currentUser?.id) {
-            const snapshot = latestStateRef.current || {};
-            const updatedUser = {
-              ...currentUser,
-              walletBalance: nextWallet,
-              balanceAccount: snapshot.balanceAccount ?? balanceAccount,
-              activeMachines: snapshot.activeMachines ?? activeMachines,
-              transactions: nextTransactions,
-              claimedMilestones: snapshot.claimedList ?? claimedList,
-              pendingDeposits: nextPendingDeposits,
-              pendingWithdrawals: snapshot.pendingWithdrawals ?? pendingWithdrawals,
-              processedDepositIds: nextProcessedIds
-            };
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-            localStorage.setItem(getUserStateStorageKey(currentUser.id), JSON.stringify(updatedUser));
-          }
-
-          const latestAmount = approvedDeposits[approvedDeposits.length - 1]?.amount || 0;
-          showToast(`✅ Admin APPROVED your deposit of UGX ${Number(latestAmount).toLocaleString()}!`, 'success');
-        }
+          saveUserData(nextWallet, undefined, undefined, nextTransactions, undefined, nextPendingDeposits, undefined);
+          showToast(`✅ Admin APPROVED your deposit of UGX ${amount.toLocaleString()}!`, 'success');
+        });
       } catch (err) { /* admin server may be offline */ }
     };
 
     const interval = setInterval(checkApprovedDeposits, 8000);
     return () => clearInterval(interval);
-  }, [user]); // Only depend on 'user' - NOT processedDepositIds to avoid loops
-
-  // Load user data on mount
+  }, [user, processedDepositIds]);
+// Load user data on mount
   useEffect(() => {
     const rawUser = localStorage.getItem('user');
     if (!rawUser) {
       navigate('/login');
       return;
     }
-
-    let persistedUser;
-    try {
-      persistedUser = JSON.parse(rawUser);
-    } catch {
-      navigate('/login');
-      return;
-    }
-
-    setUser(persistedUser);
-    setWalletBalance(persistedUser.walletBalance || 0);
-    setBalanceAccount(persistedUser.balanceAccount || 0);
-    setReferrals(persistedUser.referrals || 0);
-    setClaimedList(persistedUser.claimedMilestones || []);
-    setTransactions(persistedUser.transactions || []);
-
-    // Mark ALL saved pending deposits as already processed so they don't re-fire
-    const savedPending = (persistedUser.pendingDeposits || []).map(pd => ({
-      ...pd,
-      processed: true
-    }));
-    setPendingDeposits(savedPending);
-    setPendingWithdrawals(persistedUser.pendingWithdrawals || []);
-
-    // Load the processed deposit IDs to prevent double-crediting
-    const savedProcessedIds = persistedUser.processedDepositIds || [];
-    setProcessedDepositIds(savedProcessedIds);
-    processedIdsRef.current = savedProcessedIds;
-
-    const savedMachines = persistedUser.activeMachines || [];
+    const savedMachines = persistedState.activeMachines || [];
     const machinesWithTime = savedMachines.map(m => ({
       ...m,
       purchasedAt: m.purchasedAt || new Date().toISOString(),
@@ -439,7 +293,7 @@ function Home() {
       claimedMilestones: newClaimed !== undefined ? newClaimed : snapshot.claimedList ?? claimedList,
       pendingDeposits: newPendingDeposits !== undefined ? newPendingDeposits : snapshot.pendingDeposits ?? pendingDeposits,
       pendingWithdrawals: newPendingWithdrawals !== undefined ? newPendingWithdrawals : snapshot.pendingWithdrawals ?? pendingWithdrawals,
-      processedDepositIds: processedIdsRef.current
+      processedDepositIds: snapshot.processedDepositIds ?? processedDepositIds
     };
 
     localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -466,6 +320,7 @@ function Home() {
   // =====================
   // DEPOSIT — send to admin for verification
   // =====================
+  // simplified deposit submit: send to external API to create deposit request
   const handlePaymentIdSubmit = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     const amount = Number(depositAmount);
@@ -517,7 +372,7 @@ function Home() {
   };
 
   // =====================
-  // WITHDRAW
+  // WITHDRAW — send to admin for approval (NOT processed locally)
   // =====================
   const handleWithdrawAmountChange = (e) => {
     const value = e.target.value;
@@ -533,6 +388,7 @@ function Home() {
     if (!withdrawPhone.trim()) return showToast("❌ Enter your mobile money phone number.", 'error');
 
     try {
+      // 1. Send withdrawal request to admin for approval
       const res = await fetch(`${ADMIN_API}/api/submit-withdrawal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -553,20 +409,23 @@ function Home() {
         const data = await res.json();
         const withdrawalId = data.withdrawal_id || data.id || `W-${Date.now()}`;
 
+        // 2. Freeze the amount in Balance Account (deduct locally so they can't re-use it)
         const newBalance = balanceAccount - amt;
         setBalanceAccount(newBalance);
 
+        // 3. Track pending withdrawal
         const newPendingWithdrawal = { id: withdrawalId, amount: amt, type: 'withdraw', processed: false, adminStatus: 'pending' };
         const newPendingWithdrawals = [...pendingWithdrawals, newPendingWithdrawal];
         setPendingWithdrawals(newPendingWithdrawals);
 
+        // 4. Add pending transaction record
         const newTxn = { id: `WTH-PEND-${Math.floor(1000 + Math.random() * 9000)}`, type: "Withdraw", status: "Pending", amount: amt, date: new Date().toLocaleDateString() };
         const newTransactions = [newTxn, ...transactions];
         setTransactions(newTransactions);
 
         saveUserData(undefined, newBalance, undefined, newTransactions, undefined, undefined, newPendingWithdrawals);
 
-        showToast(`⏳ Withdrawal of UGX ${amt.toLocaleString()} submitted for admin approval.`, 'info');
+        showToast(`⏳ Withdrawal of UGX ${amt.toLocaleString()} submitted for admin approval. You'll be notified when processed.`, 'info');
         setWithdrawAmount('');
         setReceiveAmount(0);
         setCurrentView('dashboard');
@@ -585,7 +444,7 @@ function Home() {
   });
 
   // =====================
-  // BUY MACHINE
+  // BUY MACHINE — deducts from WALLET
   // =====================
   const initiatePurchaseSequence = (product) => {
     if (hasActiveMachine(product.id)) {
@@ -629,7 +488,7 @@ function Home() {
   };
 
   // =====================
-  // CLAIM completed machine
+  // CLAIM completed machine — goes to BALANCE ACCOUNT
   // =====================
   const claimCompletedMachine = () => {
     if (!completedMachine) return;
@@ -810,7 +669,7 @@ function Home() {
             <input type="number" placeholder="e.g. 50000" required min="1" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', backgroundColor: '#111', color: '#fff', border: '1px solid #00FF66', borderRadius: '6px', fontSize: '14px' }} />
           </div>
           <div style={{ backgroundColor: '#0a1f12', border: '1px solid #FFD700', borderRadius: '6px', padding: '12px', fontSize: '12px', color: '#aaa', textAlign: 'center' }}>
-            ⏳ After sending the money, click Next and enter your transaction ID.
+            ⏳ After sending the money, click Next and enter your transaction ID in the popup window.
           </div>
           <button type="button" onClick={handleDepositNext} style={{ backgroundColor: '#00FF66', color: '#000', border: 'none', padding: '14px', borderRadius: '6px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>Next</button>
         </div>
@@ -828,7 +687,7 @@ function Home() {
                   <input type="text" placeholder="Transaction ID from mobile money" required value={paymentId} onChange={(e) => setPaymentId(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', backgroundColor: '#111', color: '#fff', border: '1px solid #222', borderRadius: '6px', fontSize: '14px' }} />
                 </div>
                 <div style={{ backgroundColor: '#0a1f12', border: '1px solid #FFD700', borderRadius: '6px', padding: '12px', fontSize: '12px', color: '#aaa', textAlign: 'center' }}>
-                  ⏳ Your deposit will be sent to admin for verification.
+                  ⏳ Your deposit will be sent to admin for verification. You'll be notified once approved.
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <button type="button" onClick={() => setShowPaymentModal(false)} style={{ backgroundColor: '#222', color: '#888', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Back</button>
@@ -843,7 +702,7 @@ function Home() {
   }
 
   // =====================
-  // WITHDRAW VIEW
+  // WITHDRAW VIEW — now sends to admin for approval
   // =====================
   if (currentView === 'withdraw_portal') {
     return (
@@ -873,7 +732,7 @@ function Home() {
             <button type="button" onClick={() => setWithdrawNetwork('Airtel')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: withdrawNetwork === 'Airtel' ? '#FF0000' : '#222', color: withdrawNetwork === 'Airtel' ? '#fff' : '#888' }}>Airtel</button>
           </div>
           <div style={{ backgroundColor: '#1a0a0a', border: '1px solid #ff4444', borderRadius: '6px', padding: '12px', fontSize: '12px', color: '#aaa', textAlign: 'center' }}>
-            ⏳ Amount will be frozen in Balance Account and sent to admin for approval.
+            ⏳ Amount will be frozen in Balance Account and sent to admin for approval. You'll be notified when processed.
           </div>
           <button type="submit" style={{ backgroundColor: '#ff4444', color: '#fff', border: 'none', padding: '14px', borderRadius: '6px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>Submit for Approval</button>
         </form>
@@ -907,7 +766,7 @@ function Home() {
   }
 
   // =====================
-  // MAIN DASHBOARD - continues below
+  // MAIN DASHBOARD
   // =====================
   return (
     <div style={{ backgroundColor: isDarkMode ? '#000000' : '#f8f9fa', minHeight: '100vh', color: isDarkMode ? '#ffffff' : '#212529', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -1009,133 +868,196 @@ function Home() {
 
             <div>
               <h4 style={{ color: '#aaa', margin: '0 0 12px 0', fontSize: '13px', fontWeight: 'bold' }}>ACTIONS</h4>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                <button onClick={() => { setCurrentView('deposit_portal'); setActiveTab('deposit'); }} style={{ flex: 1, minWidth: '120px', padding: '14px', backgroundColor: '#00FF66', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>💳 Deposit</button>
-                <button onClick={() => { setCurrentView('withdraw_portal'); setActiveTab('withdraw'); }} style={{ flex: 1, minWidth: '120px', padding: '14px', backgroundColor: '#ff4444', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>📤 Withdraw</button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <button onClick={triggerDepositFlow} style={{ backgroundColor: isDarkMode ? '#111' : '#fff', border: isDarkMode ? '2px solid #00FF66' : '2px solid #107C41', color: isDarkMode ? '#00FF66' : '#107C41', padding: '18px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>💸 Deposit</button>
+                <button onClick={triggerWithdrawFlow} style={{ backgroundColor: isDarkMode ? '#111' : '#fff', border: '2px solid #ff4444', color: '#ff4444', padding: '18px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>📥 Withdraw</button>
               </div>
             </div>
 
-            {/* MACHINE PURCHASE SECTION */}
             <div>
-              <h4 style={{ color: '#aaa', margin: '0 0 5px 0', fontSize: '13px', fontWeight: 'bold' }}>LEASE A MACHINE</h4>
-              <p style={{ color: '#666', fontSize: '11px', margin: '0 0 15px 0' }}>Active: {activeMachines.filter(m => m.status === 'running' || m.status === 'active').length} / 1 slot</p>
-
-              {/* CLASS SELECTOR */}
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                {['A', 'B', 'C'].map(cls => (
-                  <button key={cls} onClick={() => setSelectedClass(cls)} style={{
-                    flex: 1, padding: '10px', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer',
-                    backgroundColor: selectedClass === cls ? '#00FF66' : (isDarkMode ? '#111' : '#e9ecef'),
-                    color: selectedClass === cls ? '#000' : (isDarkMode ? '#888' : '#495057')
-                  }}>
-                    Class {cls}
-                  </button>
-                ))}
-              </div>
-
-              {/* PRODUCTS GRID */}
-              {filteredProducts.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  {filteredProducts.map(product => (
-                    <ProductCard key={product.id || product.name} product={product} />
-                  ))}
-                </div>
+              <h4 style={{ color: '#aaa', margin: '0 0 12px 0', fontSize: '13px', fontWeight: 'bold' }}>RECENT TRANSACTIONS</h4>
+              {transactions.length === 0 ? (
+                <p style={{ color: '#666', fontSize: '13px', textAlign: 'center', padding: '20px' }}>No transactions yet</p>
               ) : (
-                <p style={{ color: '#666', textAlign: 'center', padding: '30px 0' }}>No machines available for this class.</p>
-              )}
-            </div>
-
-            {/* ACTIVE MACHINES */}
-            <div>
-              <h4 style={{ color: '#aaa', margin: '0 0 15px 0', fontSize: '13px', fontWeight: 'bold' }}>⚡ ACTIVE MACHINES</h4>
-              {activeMachines.filter(m => m.status === 'running' || m.status === 'active').length === 0 ? (
-                <p style={{ color: '#666', fontSize: '13px', textAlign: 'center', padding: '20px', backgroundColor: isDarkMode ? '#0a0a0a' : '#f1f3f5', borderRadius: '8px' }}>
-                  No machines running. Lease one above!
-                </p>
-              ) : (
-                activeMachines.filter(m => m.status === 'running' || m.status === 'active').map((machine, idx) => {
-                  const endTime = new Date(machine.endTime).getTime();
-                  const timeLeft = Math.max(0, endTime - now);
-                  const daysLeft = Math.ceil(timeLeft / (1000 * 60 * 60 * 24));
-                  const totalDuration = endTime - new Date(machine.startTime).getTime();
-                  const progress = totalDuration > 0 ? ((totalDuration - timeLeft) / totalDuration) * 100 : 0;
-
+                transactions.slice(0, 15).map((txn, i) => {
+                  const { label, sign, color } = getTransactionMeta(txn);
                   return (
-                    <div key={machine.id || idx} style={{
-                      backgroundColor: isDarkMode ? '#0a0a0a' : '#fff',
-                      border: '2px solid',
-                      borderColor: machine.classTier === 'B' ? '#00BCFF' : machine.classTier === 'C' ? '#FFD700' : '#00FF66',
-                      borderRadius: '10px', padding: '15px', marginBottom: '12px'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <strong style={{ fontSize: '15px' }}>{machine.name}</strong>
-                          <span style={{ marginLeft: '10px', fontSize: '11px', color: '#888' }}>Class {machine.classTier}</span>
-                        </div>
-                        <PowerbankGraphic accentColor={machine.classTier === 'B' ? '#00BCFF' : machine.classTier === 'C' ? '#FFD700' : '#00FF66'} />
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', borderRadius: '6px', marginBottom: '8px' }}>
+                      <div>
+                        <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', color: isDarkMode ? '#fff' : '#212529' }}>
+                          {label}
+                        </span>
+                        <span style={{ fontSize: '10px', color: '#666' }}>{txn.id}</span>
                       </div>
-                      <div style={{ marginTop: '10px', backgroundColor: isDarkMode ? '#111' : '#e9ecef', borderRadius: '5px', overflow: 'hidden', height: '8px' }}>
-                        <div style={{ width: `${Math.min(100, progress)}%`, height: '100%', backgroundColor: machine.classTier === 'B' ? '#00BCFF' : machine.classTier === 'C' ? '#FFD700' : '#00FF66', borderRadius: '5px', transition: 'width 1s linear' }} />
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '12px', color: '#888' }}>
-                        <span>{daysLeft} day(s) left</span>
-                        <span style={{ fontWeight: 'bold', color: '#00FF66' }}>+UGX {getProductProfit(machine).toLocaleString()}</span>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', color }}>
+                          {sign} UGX {txn.amount.toLocaleString()}
+                        </span>
+                        <span style={{ fontSize: '10px', color: '#666' }}>{txn.date}</span>
                       </div>
                     </div>
                   );
                 })
               )}
             </div>
+          </div>
+        )}
 
-            {/* COMPLETED MACHINES */}
-            {activeMachines.filter(m => m.status === 'completed' && !m.claimed).length > 0 && (
-              <div>
-                <h4 style={{ color: '#FFD700', margin: '0 0 15px 0', fontSize: '13px', fontWeight: 'bold' }}>✅ READY TO CLAIM</h4>
-                {activeMachines.filter(m => m.status === 'completed' && !m.claimed).map((machine, idx) => (
-                  <div key={machine.id || idx} style={{ backgroundColor: '#0a0a0a', border: '2px solid #FFD700', borderRadius: '10px', padding: '15px', marginBottom: '10px' }}>
-                    <strong>{machine.name}</strong>
-                    <div style={{ color: '#00FF66', fontSize: '18px', fontWeight: 'bold', margin: '8px 0' }}>UGX {machine.totalReturn.toLocaleString()}</div>
-                    <button onClick={() => claimCompletedMachineById(machine)} style={{ backgroundColor: '#FFD700', color: '#000', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', width: '100%', cursor: 'pointer' }}>🚀 CLAIM NOW</button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* REFERRAL */}
-            <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: '1px solid #FFD700', borderRadius: '10px', padding: '20px' }}>
-              <h4 style={{ margin: '0 0 10px 0', color: '#FFD700' }}>👥 Referral Program</h4>
-              <p style={{ color: '#888', fontSize: '12px' }}>Referrals: <strong style={{ color: '#fff' }}>{referrals}</strong></p>
-              <p style={{ color: '#888', fontSize: '12px' }}>Your referral link:</p>
-              <div style={{ backgroundColor: '#111', padding: '10px', borderRadius: '5px', wordBreak: 'break-all', color: '#00FF66', fontSize: '12px', fontFamily: 'monospace' }}>
-                {user ? `${window.location.origin}/register?ref=${user.id || user._id}` : 'Login to get link'}
-              </div>
+        {/* ========== BUY TAB ========== */}
+        {activeTab === 'buy' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <h3 style={{ color: isDarkMode ? '#00FF66' : '#107C41', margin: '0' }}>LEASE MACHINES</h3>
+            <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', padding: '12px', borderRadius: '8px', border: '1px solid #00BCFF', fontSize: '13px', color: '#aaa' }}>
+              ⚖️ Balance Account: <strong style={{ color: '#00BCFF' }}>UGX {balanceAccount.toLocaleString()}</strong><br />
+              💼 Wallet: <strong style={{ color: '#00FF66' }}>UGX {walletBalance.toLocaleString()}</strong> (used for leasing machines)
             </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+              <button onClick={() => setSelectedClass('A')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'A' ? (isDarkMode ? '#00FF66' : '#107C41') : (isDarkMode ? '#111' : '#e9ecef'), color: selectedClass === 'A' ? (isDarkMode ? '#000' : '#fff') : '#888' }}>CLASS A</button>
+              <button onClick={() => setSelectedClass('B')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'B' ? '#00BCFF' : (isDarkMode ? '#111' : '#e9ecef'), color: selectedClass === 'B' ? '#000' : '#888' }}>CLASS B (200%)</button>
+              <button onClick={() => setSelectedClass('C')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'C' ? '#FFD700' : (isDarkMode ? '#111' : '#e9ecef'), color: selectedClass === 'C' ? '#000' : '#888' }}>CLASS C (300%)</button>
+              <button onClick={() => setSelectedClass('D')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'D' ? '#FF1493' : (isDarkMode ? '#111' : '#e9ecef'), color: selectedClass === 'D' ? '#fff' : '#888' }}>CLASS D (100D)</button>
+            </div>
+            {powerbankCatalog[selectedClass].map((product) => {
+              const totalReturn = getProductTotalReturn(product);
+              const profit = getProductProfit(product);
+              const hasActive = hasActiveMachine(product.id);
+              const canBuy = !hasActive && walletBalance >= product.price;
+              return (
+                <div key={product.id} style={{ display: 'flex', backgroundColor: isDarkMode ? '#111' : '#fff', borderRadius: '10px', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', overflow: 'hidden', height: '135px' }}>
+                  <div style={{ width: '25%', backgroundColor: isDarkMode ? '#1a1a1a' : '#f1f3f5', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px' }}>
+                    <PowerbankGraphic accentColor={product.imgColor} />
+                  </div>
+                  <div style={{ width: '75%', padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <span style={{ fontWeight: 'bold', color: isDarkMode ? '#fff' : '#212529', fontSize: '14px' }}>{product.name}</span>
+                        <span style={{ color: isDarkMode ? '#00FF66' : '#107C41', fontWeight: 'bold', fontSize: '13px' }}>UGX {product.price.toLocaleString()}</span>
+                      </div>
+                      <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '11px' }}>{product.desc}</p>
+                      {selectedClass !== 'A' && (
+                        <div style={{ marginTop: '3px', fontSize: '11px', fontWeight: 'bold', color: selectedClass === 'B' ? '#00BCFF' : '#FFD700' }}>
+                          Return: UGX {totalReturn.toLocaleString()} (+UGX {profit.toLocaleString()})
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => initiatePurchaseSequence(product)}
+                      disabled={!canBuy}
+                      style={{
+                        alignSelf: 'flex-end',
+                        backgroundColor: !canBuy ? '#333' : (isDarkMode ? '#00FF66' : '#107C41'),
+                        color: !canBuy ? '#666' : (isDarkMode ? '#000' : '#fff'),
+                        border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', cursor: canBuy ? 'pointer' : 'not-allowed'
+                      }}>
+                      {hasActive ? '🔒 Locked' : !canBuy ? 'Need Wallet' : 'Lease'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
-            {/* REWARDS */}
-            <div>
-              <h4 style={{ color: '#FFD700', margin: '0 0 15px 0', fontSize: '13px', fontWeight: 'bold' }}>🏆 REFERRAL REWARDS</h4>
-              {rewardsRoadmap.map((milestone, idx) => {
-                const isClaimed = claimedList.includes(milestone.target);
-                const isReached = referrals >= milestone.target;
+        {/* ========== ACTIVITY TAB ========== */}
+        {activeTab === 'activity' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ borderBottom: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', paddingBottom: '10px' }}>
+              <h3 style={{ color: isDarkMode ? '#00FF66' : '#107C41', margin: 0 }}>ACTIVE MACHINES</h3>
+              <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: '12px' }}>Live countdown · Profits go to Balance Account</p>
+            </div>
+            {activeMachines.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 20px', backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', borderRadius: '8px', border: isDarkMode ? '1px dashed #222' : '1px dashed #ccc' }}>
+                <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>No machines yet.</p>
+                <p style={{ margin: '8px 0 0 0', color: '#888', fontSize: '12px' }}>Go to Lease tab to buy one.</p>
+              </div>
+            ) : (
+              activeMachines.map((mach, idx) => {
+                const countdown = getMachineCountdown(mach);
+                const profit = mach.profit || calculateProfit(mach.price, mach.classTier);
+                const totalReturn = mach.totalReturn || calculateTotalReturn(mach.price, mach.classTier);
+                const classColor = mach.classTier === 'B' ? '#00BCFF' : mach.classTier === 'C' ? '#FFD700' : '#00FF66';
                 return (
                   <div key={idx} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '12px', marginBottom: '8px', borderRadius: '8px',
-                    backgroundColor: isClaimed ? '#0a1f12' : (isReached ? '#1a1400' : '#0a0a0a'),
-                    border: '1px solid',
-                    borderColor: isClaimed ? '#00FF66' : (isReached ? '#FFD700' : '#222')
+                    padding: '16px',
+                    backgroundColor: isDarkMode ? '#0a0a0a' : '#fff',
+                    border: countdown.completed && !mach.claimed ? '2px solid #FFD700' : mach.claimed ? '1px solid #333' : isDarkMode ? '1px solid #111' : '1px solid #dee2e6',
+                    borderRadius: '10px', opacity: mach.claimed ? 0.6 : 1
                   }}>
-                    <div>
-                      <strong style={{ color: isClaimed ? '#00FF66' : '#ddd' }}>{milestone.reward}</strong>
-                      <div style={{ fontSize: '11px', color: '#888' }}>{milestone.desc} ({milestone.target} referrals)</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <div>
+                        <span style={{ fontWeight: 'bold', fontSize: '14px', color: isDarkMode ? '#fff' : '#212529' }}>{mach.name}</span>
+                        <span style={{ marginLeft: '8px', fontSize: '10px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '3px', backgroundColor: classColor + '22', color: classColor }}>CLASS {mach.classTier}</span>
+                      </div>
+                      <span style={{ color: countdown.completed ? (mach.claimed ? '#666' : '#FFD700') : '#00FF66', fontSize: '12px', fontWeight: 'bold' }}>
+                        {mach.claimed ? '✅ Claimed' : countdown.completed ? '🎉 Complete!' : '🟢 Active'}
+                      </span>
                     </div>
-                    {isClaimed ? (
-                      <span style={{ color: '#00FF66', fontSize: '12px', fontWeight: 'bold' }}>✅ Claimed</span>
-                    ) : isReached ? (
-                      <button onClick={() => claimReward(milestone)} style={{ backgroundColor: '#FFD700', color: '#000', border: 'none', padding: '8px 16px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Claim</button>
-                    ) : (
-                      <span style={{ color: '#555', fontSize: '12px' }}>{referrals}/{milestone.target}</span>
+                    {!mach.claimed && (
+                      <div style={{ width: '100%', height: '6px', backgroundColor: '#222', borderRadius: '3px', marginBottom: '10px', overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.min(countdown.progress || 0, 100)}%`, height: '100%', backgroundColor: countdown.completed ? '#FFD700' : classColor, borderRadius: '3px', transition: 'width 1s linear' }} />
+                      </div>
                     )}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', fontSize: '12px' }}>
+                      <div><span style={{ color: '#666' }}>Cost</span><div style={{ color: isDarkMode ? '#fff' : '#212529', fontWeight: 'bold' }}>UGX {mach.price.toLocaleString()}</div></div>
+                      <div><span style={{ color: '#666' }}>Profit</span><div style={{ color: classColor, fontWeight: 'bold' }}>+UGX {profit.toLocaleString()}</div></div>
+                      <div><span style={{ color: '#666' }}>→ Balance</span><div style={{ color: '#00BCFF', fontWeight: 'bold' }}>UGX {totalReturn.toLocaleString()}</div></div>
+                    </div>
+                    {!mach.claimed && (
+                      <div style={{ marginTop: '10px', padding: '8px 12px', backgroundColor: isDarkMode ? '#111' : '#f1f3f5', borderRadius: '6px', textAlign: 'center', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', color: countdown.completed ? '#FFD700' : classColor }}>
+                        {countdown.display}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* ========== REWARDS TAB ========== */}
+        {activeTab === 'rewards' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.72)', backdropFilter: 'blur(2px)', borderRadius: '12px', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <span style={{ color: '#00FF66', fontSize: '28px', fontWeight: 'bold' }}>Coming Soon</span>
+              <span style={{ color: '#ddd', fontSize: '12px', textAlign: 'center' }}>Referral rewards will be enabled soon.</span>
+            </div>
+            <div style={{ borderBottom: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', paddingBottom: '10px' }}>
+              <h3 style={{ color: isDarkMode ? '#00FF66' : '#107C41', margin: 0 }}>REFERRAL REWARDS</h3>
+              <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: '12px' }}>Invite friends — rewards go to Wallet</p>
+            </div>
+            <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', padding: '20px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div>
+                <span style={{ fontSize: '12px', color: '#888', fontWeight: 'bold' }}>YOUR REFERRALS</span>
+                <div style={{ fontSize: '32px', fontWeight: 'bold', color: isDarkMode ? '#fff' : '#212529', marginTop: '5px' }}>{referrals}</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <input type="text" readOnly value={referralLink} style={{ padding: '12px', backgroundColor: isDarkMode ? '#111' : '#f1f3f5', color: isDarkMode ? '#aaa' : '#333', border: '1px solid #222', borderRadius: '6px', fontSize: '12px' }} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <button onClick={copyToClipboard} style={{ backgroundColor: isDarkMode ? '#111' : '#e9ecef', color: isDarkMode ? '#00FF66' : '#107C41', border: '1px solid #222', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>📋 Copy</button>
+                  <button onClick={shareOnWhatsApp} style={{ backgroundColor: '#25D366', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>💬 WhatsApp</button>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <h4 style={{ color: '#aaa', margin: '5px 0', fontSize: '13px', fontWeight: 'bold' }}>MILESTONES</h4>
+              {rewardsRoadmap.map((roadmap) => {
+                const isClaimed = claimedList.includes(roadmap.target);
+                const canClaim = referrals >= roadmap.target && !isClaimed;
+                return (
+                  <div key={roadmap.target} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', backgroundColor: isDarkMode ? '#111' : '#fff', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', borderRadius: '8px' }}>
+                    <div style={{ width: '70%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', backgroundColor: roadmap.type === 'Cash' ? '#2563eb' : '#db2777', color: '#fff' }}>{roadmap.type}</span>
+                        <strong style={{ color: isDarkMode ? '#fff' : '#212529', fontSize: '14px' }}>{roadmap.reward}</strong>
+                      </div>
+                      <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '11px' }}>{roadmap.desc}</p>
+                      <span style={{ fontSize: '11px', color: referrals >= roadmap.target ? '#00FF66' : '#ff4444', fontWeight: 'bold', display: 'block', marginTop: '4px' }}>{referrals}/{roadmap.target} invites</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <button disabled={!canClaim} onClick={() => handleClaimReward(roadmap.target)} style={{ padding: '8px 12px', borderRadius: '4px', border: 'none', fontSize: '11px', fontWeight: 'bold', cursor: canClaim ? 'pointer' : 'not-allowed', backgroundColor: isClaimed ? '#222' : canClaim ? '#00FF66' : '#333', color: isClaimed ? '#555' : canClaim ? '#000' : '#888' }}>
+                        {isClaimed ? '✓ Done' : canClaim ? 'Claim' : 'Locked'}
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -1143,16 +1065,35 @@ function Home() {
           </div>
         )}
 
-        {/* ========== DEPOSIT TAB ========== */}
-        {activeTab === 'deposit' && renderDepositPortal()}
-
-        {/* ========== WITHDRAW TAB ========== */}
-        {activeTab === 'withdraw' && renderWithdrawPortal()}
-
       </div>
 
-      {/* BOTTOM NAV */}
-      <BottomNav />
+      {/* ========== BOTTOM NAV ========== */}
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '70px', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderTop: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', alignItems: 'center', justifyItems: 'center', zIndex: 4000 }}>
+        <button onClick={() => setActiveTab('home')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer', color: activeTab === 'home' ? (isDarkMode ? '#00FF66' : '#107C41') : '#666' }}>
+          <span style={{ fontSize: '20px' }}>🏠</span>
+          <span style={{ fontSize: '11px', fontWeight: 'bold' }}>Home</span>
+        </button>
+        <button onClick={() => setActiveTab('buy')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer', color: activeTab === 'buy' ? (isDarkMode ? '#00FF66' : '#107C41') : '#666' }}>
+          <span style={{ fontSize: '20px' }}>🛒</span>
+          <span style={{ fontSize: '11px', fontWeight: 'bold' }}>Lease</span>
+        </button>
+        <button onClick={() => setActiveTab('activity')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer', color: activeTab === 'activity' ? (isDarkMode ? '#00FF66' : '#107C41') : '#666' }}>
+          <span style={{ fontSize: '20px' }}>⚡</span>
+          <span style={{ fontSize: '11px', fontWeight: 'bold' }}>Activity</span>
+        </button>
+        <button onClick={() => setActiveTab('rewards')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer', color: activeTab === 'rewards' ? (isDarkMode ? '#00FF66' : '#107C41') : '#666' }}>
+          <span style={{ fontSize: '20px' }}>🎁</span>
+          <span style={{ fontSize: '11px', fontWeight: 'bold' }}>Rewards</span>
+        </button>
+      </div>
+
+      {/* CSS for fadeIn animation */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
