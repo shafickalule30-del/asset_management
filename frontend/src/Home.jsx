@@ -270,51 +270,61 @@ function Home() {
   }, [user]);
 
   // Load user data on mount
-  useEffect(() => {
-    const rawUser = localStorage.getItem('user');
-    if (!rawUser) {
-      navigate('/login');
-      return;
-    }
+useEffect(() => {
+  const rawUser = localStorage.getItem('user');
+  if (!rawUser) {
+    navigate('/login');
+    return;
+  }
 
-    let persistedUser;
-    try {
-      persistedUser = JSON.parse(rawUser);
-    } catch {
-      navigate('/login');
-      return;
-    }
+  let persistedUser;
+  try {
+    persistedUser = JSON.parse(rawUser);
+  } catch {
+    navigate('/login');
+    return;
+  }
 
-    const persistedState = getStoredUserState(persistedUser?.id) || persistedUser;
+  const persistedState = getStoredUserState(persistedUser?.id) || persistedUser;
 
-    setUser(persistedUser);
-    setWalletBalance(persistedState.walletBalance || 0);
-    setBalanceAccount(persistedState.balanceAccount || 0);
-    setReferrals(persistedState.referrals || 0);
-    setClaimedList(persistedState.claimedMilestones || []);
-    setTransactions(persistedState.transactions || []);
+  setUser(persistedUser);
+  setWalletBalance(persistedState.walletBalance || 0);
+  setBalanceAccount(persistedState.balanceAccount || 0);
+  setReferrals(persistedState.referrals || 0);
+  setClaimedList(persistedState.claimedMilestones || []);
+  setTransactions(persistedState.transactions || []);
 
-    // Mark ALL saved pending deposits as already processed so they don't re-fire instantly
-    const savedPending = (persistedState.pendingDeposits || []).map(pd => ({
-      ...pd,
-      processed: true
-    }));
-    setPendingDeposits(savedPending);
-    setPendingWithdrawals(persistedState.pendingWithdrawals || []);
+  // Mark ALL saved pending deposits as already processed so they don't re-fire instantly
+  const savedPending = (persistedState.pendingDeposits || []).map(pd => ({
+    ...pd,
+    processed: true
+  }));
+  setPendingDeposits(savedPending);
+  setPendingWithdrawals(persistedState.pendingWithdrawals || []);
 
-    // Load the processed deposit IDs to prevent double-crediting
-    const savedProcessedIds = persistedState.processedDepositIds || [];
-    setProcessedDepositIds(savedProcessedIds);
-    processedIdsRef.current = savedProcessedIds;
+  // Load the processed deposit IDs to prevent double-crediting
+  const savedProcessedIds = persistedState.processedDepositIds || [];
+  setProcessedDepositIds(savedProcessedIds);
+  processedIdsRef.current = savedProcessedIds;
 
-    const savedMachines = persistedState.activeMachines || [];
-    const machinesWithTime = savedMachines.map(m => ({
-      ...m,
-      purchasedAt: m.purchasedAt || new Date().toISOString(),
-      claimed: m.claimed || false
-    }));
-    setActiveMachines(machinesWithTime);
-  }, [navigate]);
+  // KEY FIX: Also mark all approved deposits that are in pendingDeposits with adminStatus 'approved'
+  // as already processed so they don't get credited again
+  const approvedIds = savedPending
+    .filter(pd => pd.adminStatus === 'approved')
+    .map(pd => pd.id);
+  
+  const allProcessedIds = [...new Set([...savedProcessedIds, ...approvedIds])];
+  setProcessedDepositIds(allProcessedIds);
+  processedIdsRef.current = allProcessedIds;
+
+  const savedMachines = persistedState.activeMachines || [];
+  const machinesWithTime = savedMachines.map(m => ({
+    ...m,
+    purchasedAt: m.purchasedAt || new Date().toISOString(),
+    claimed: m.claimed || false
+  }));
+  setActiveMachines(machinesWithTime);
+}, [navigate]);
 
   const saveUserData = (newWallet, newBalance, newMachines, newTransactions, newClaimed, newPendingDeposits, newPendingWithdrawals) => {
     const currentUser = user || latestStateRef.current?.user;
