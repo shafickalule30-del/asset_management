@@ -38,7 +38,6 @@ function PowerbankGraphic({ accentColor = '#00FF66' }) {
 
 function calculateProfit(price, classTier) {
   if (classTier === 'B') return price * 2;
-  if (classTier === 'C') return price * 3;
   return 0;
 }
 
@@ -95,6 +94,7 @@ const getStoredUserState = (userId) => {
 function Home() {
   const initialStoredUser = getStoredUser();
   const initialStoredUserState = getStoredUserState(initialStoredUser?.id);
+
   const [user, setUser] = useState(initialStoredUser);
   const [activeTab, setActiveTab] = useState('home');
   const [walletBalance, setWalletBalance] = useState(initialStoredUserState?.walletBalance ?? initialStoredUser?.walletBalance ?? 0);
@@ -105,18 +105,15 @@ function Home() {
   const [pendingDeposits, setPendingDeposits] = useState(initialStoredUserState?.pendingDeposits ?? initialStoredUser?.pendingDeposits ?? []);
   const [pendingWithdrawals, setPendingWithdrawals] = useState(initialStoredUserState?.pendingWithdrawals ?? initialStoredUser?.pendingWithdrawals ?? []);
   const [processedDepositIds, setProcessedDepositIds] = useState(initialStoredUserState?.processedDepositIds ?? initialStoredUser?.processedDepositIds ?? []);
-  const [now, setNow] = useState(Date.now());
-
+  const [transactions, setTransactions] = useState(initialStoredUserState?.transactions ?? initialStoredUser?.transactions ?? []);
   const [currentView, setCurrentView] = useState('dashboard');
   const [selectedClass, setSelectedClass] = useState('A');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [completedMachine, setCompletedMachine] = useState(null);
   const [selectedProductToBuy, setSelectedProductToBuy] = useState(null);
-
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
-
   const [paymentId, setPaymentId] = useState('');
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -126,8 +123,11 @@ function Home() {
   const [withdrawNetwork, setWithdrawNetwork] = useState('MTN');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [currentAccount, setCurrentAccount] = useState(depositAccounts[0]);
-
   const [toast, setToast] = useState(null);
+  const [now, setNow] = useState(Date.now());
+
+  const navigate = useNavigate();
+  const latestStateRef = useRef(null);
 
   const showToast = (msg, type = 'info') => {
     setToast({ msg, type });
@@ -135,37 +135,54 @@ function Home() {
   };
 
   const rewardsRoadmap = [
-    { target: 2, type: "Cash", reward: "UGX 3,000", desc: "Kickstart bonus" },
-    { target: 5, type: "Cash", reward: "UGX 10,000", desc: "Standard tier bonus" },
-    { target: 10, type: "Cash", reward: "UGX 20,000", desc: "Advanced milestone" },
-    { target: 15, type: "Hardware", reward: "Alpha Slim Powerbank", desc: "Physical Class A device" },
-    { target: 20, type: "Cash", reward: "UGX 45,000", desc: "Premium level bonus" },
-    { target: 25, type: "Cash", reward: "UGX 60,000", desc: "High performance payout" },
-    { target: 30, type: "Hardware", reward: "Delta Prime Powerbank", desc: "Physical Class B hardware" },
-    { target: 40, type: "Cash", reward: "UGX 90,000", desc: "Elite cash optimization" },
-    { target: 50, type: "Cash", reward: "UGX 130,000", desc: "Ultimate affiliate tier" },
-    { target: 60, type: "Hardware", reward: "Quantum Base Powerbank", desc: "Grand Master delivery" }
+    { target: 2, type: 'Cash', reward: 'UGX 3,000', desc: 'Kickstart bonus' },
+    { target: 5, type: 'Cash', reward: 'UGX 10,000', desc: 'Standard tier bonus' },
+    { target: 10, type: 'Cash', reward: 'UGX 20,000', desc: 'Advanced milestone' },
+    { target: 15, type: 'Hardware', reward: 'Alpha Slim Powerbank', desc: 'Physical Class A device' },
+    { target: 20, type: 'Cash', reward: 'UGX 45,000', desc: 'Premium level bonus' },
+    { target: 25, type: 'Cash', reward: 'UGX 60,000', desc: 'High performance payout' },
+    { target: 30, type: 'Hardware', reward: 'Delta Prime Powerbank', desc: 'Physical Class B hardware' },
+    { target: 40, type: 'Cash', reward: 'UGX 90,000', desc: 'Elite cash optimization' },
+    { target: 50, type: 'Cash', reward: 'UGX 130,000', desc: 'Ultimate affiliate tier' },
+    { target: 60, type: 'Hardware', reward: 'Quantum Base Powerbank', desc: 'Grand Master delivery' }
   ];
 
   const powerbankCatalog = {
     A: [
-      { id: "A-01", name: "Class A - Machine 1", price: 2000, days: 1, classTier: 'A', desc: "Cost 2,000. Get 3000 in 1 days.", imgColor: "#00FF66", profit: 1000, totalReturn: 3000 },
-      { id: "A-02", name: "Class A - Machine 2", price: 5000, days: 1, classTier: 'A', desc: "Cost 5,000. Get 7500 in 1 days.", imgColor: "#00FF99", profit: 2500, totalReturn: 7500 },
-      { id: "A-03", name: "Class A - Machine 3", price: 10000, days: 1, classTier: 'A', desc: "Cost 10,000. Get 15000 in 1 days.", imgColor: "#33FF66", profit: 5000, totalReturn: 15000 },
-      { id: "A-04", name: "Class A - Machine 4", price: 20000, days: 1, classTier: 'A', desc: "Cost 20,000. Get 28000 in 1 days.", imgColor: "#107C41", profit: 8000, totalReturn: 28000 }
+      { id: 'A-01', name: 'Class A - Machine 1', price: 2000, days: 1, classTier: 'A', desc: 'Cost 2,000. Get 3000 in 1 days.', imgColor: '#00FF66', profit: 1000, totalReturn: 3000 },
+      { id: 'A-02', name: 'Class A - Machine 2', price: 5000, days: 1, classTier: 'A', desc: 'Cost 5,000. Get 7500 in 1 days.', imgColor: '#00FF99', profit: 2500, totalReturn: 7500 },
+      { id: 'A-03', name: 'Class A - Machine 3', price: 10000, days: 1, classTier: 'A', desc: 'Cost 10,000. Get 15000 in 1 days.', imgColor: '#33FF66', profit: 5000, totalReturn: 15000 },
+      { id: 'A-04', name: 'Class A - Machine 4', price: 20000, days: 1, classTier: 'A', desc: 'Cost 20,000. Get 28000 in 1 days.', imgColor: '#107C41', profit: 8000, totalReturn: 28000 }
     ],
     B: [
-      { id: "B-01", name: "Delta Prime 20K", price: 25000, days: 1, classTier: 'B', desc: " Return UGX 35000.", imgColor: "#00BCFF" },
-      { id: "B-02", name: "Delta Nitro 25K", price: 30000, days: 1, classTier: 'B', desc: " Return UGX 40000.", imgColor: "#0099FF" },
-      { id: "B-03", name: "Delta Combat 30K", price: 35000, days: 1, classTier: 'B', desc: "Return UGX 55000.", imgColor: "#0066CC" },
-      { id: "B-04", name: "Delta Matrix Ultra", price: 50000, days: 1, classTier: 'B', desc: "Return UGX 70000.", imgColor: "#1F4E79" }
+      { id: 'B-01', name: 'Delta Prime 20K', price: 25000, days: 1, classTier: 'B', desc: 'Return UGX 35000.', imgColor: '#00BCFF' },
+      { id: 'B-02', name: 'Delta Nitro 25K', price: 30000, days: 1, classTier: 'B', desc: 'Return UGX 40000.', imgColor: '#0099FF' },
+      { id: 'B-03', name: 'Delta Combat 30K', price: 35000, days: 1, classTier: 'B', desc: 'Return UGX 55000.', imgColor: '#0066CC' },
+      { id: 'B-04', name: 'Delta Matrix Ultra', price: 50000, days: 1, classTier: 'B', desc: 'Return UGX 70000.', imgColor: '#1F4E79' }
     ]
   };
 
-  const [transactions, setTransactions] = useState(initialStoredUserState?.transactions ?? initialStoredUser?.transactions ?? []);
+  const saveUserData = (newWallet, newBalance, newMachines, newTransactions, newClaimed, newPendingDeposits, newPendingWithdrawals) => {
+    const currentUser = user || latestStateRef.current?.user;
+    if (!currentUser?.id) return;
 
-  const navigate = useNavigate();
-  const latestStateRef = useRef(null);
+    const snapshot = latestStateRef.current || {};
+    const updatedUser = {
+      ...currentUser,
+      walletBalance: newWallet !== undefined ? newWallet : snapshot.walletBalance ?? walletBalance,
+      balanceAccount: newBalance !== undefined ? newBalance : snapshot.balanceAccount ?? balanceAccount,
+      activeMachines: newMachines !== undefined ? newMachines : snapshot.activeMachines ?? activeMachines,
+      transactions: newTransactions !== undefined ? newTransactions : snapshot.transactions ?? transactions,
+      claimedMilestones: newClaimed !== undefined ? newClaimed : snapshot.claimedList ?? claimedList,
+      pendingDeposits: newPendingDeposits !== undefined ? newPendingDeposits : snapshot.pendingDeposits ?? pendingDeposits,
+      pendingWithdrawals: newPendingWithdrawals !== undefined ? newPendingWithdrawals : snapshot.pendingWithdrawals ?? pendingWithdrawals,
+      processedDepositIds: snapshot.processedDepositIds ?? processedDepositIds
+    };
+
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    localStorage.setItem(getUserStateStorageKey(currentUser.id), JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
 
   useEffect(() => {
     latestStateRef.current = {
@@ -188,9 +205,8 @@ function Home() {
 
   useEffect(() => {
     const rotateDepositAccount = () => {
-      const totalMinutes = new Date().getMinutes();
-      const index = Math.floor(totalMinutes / 5) % depositAccounts.length;
-      setCurrentAccount(depositAccounts[index]);
+      const minuteIndex = Math.floor(new Date().getMinutes() / 5) % depositAccounts.length;
+      setCurrentAccount(depositAccounts[minuteIndex]);
     };
 
     rotateDepositAccount();
@@ -199,10 +215,11 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    const completed = activeMachines.find(m => {
+    const completed = activeMachines.find((m) => {
       const endTime = new Date(m.purchasedAt).getTime() + (m.days * 24 * 60 * 60 * 1000);
       return Date.now() >= endTime && !m.claimed;
     });
+
     if (completed && !showCompletionModal) {
       setCompletedMachine(completed);
       setShowCompletionModal(true);
@@ -222,35 +239,72 @@ function Home() {
         if (!res.ok) return;
         const approvedDeposits = await res.json();
 
-        approvedDeposits.forEach(ad => {
+        approvedDeposits.forEach((ad) => {
           const depositId = ad._id || ad.id;
           if (!depositId || processedIdsRef.current.includes(depositId)) return;
 
           const amount = Number(ad.amount);
           const snapshot = latestStateRef.current || {};
-          const nextWallet = (snapshot.walletBalance ?? walletBalance) + amount;
-          const newTxn = { id: `ADMIN-${depositId}`, type: 'Deposit', status: 'Approved', amount, date: new Date().toLocaleDateString() };
-          const nextTransactions = [newTxn, ...(snapshot.transactions ?? transactions)];
+          const newWallet = (snapshot.walletBalance ?? walletBalance) + amount;
+          const nextTransactions = [{ id: `ADMIN-${depositId}`, type: 'Deposit', status: 'Approved', amount, date: new Date().toLocaleDateString() }, ...(snapshot.transactions ?? transactions)];
           const nextProcessedDepositIds = [...(snapshot.processedDepositIds ?? processedDepositIds), depositId];
-          const nextPendingDeposits = (snapshot.pendingDeposits ?? pendingDeposits).map(pd => {
+          const nextPendingDeposits = (snapshot.pendingDeposits ?? pendingDeposits).map((pd) => {
             if (pd.processed) return pd;
             return { ...pd, processed: true, adminStatus: 'approved' };
           });
 
-          setWalletBalance(nextWallet);
+          setWalletBalance(newWallet);
           setTransactions(nextTransactions);
           setProcessedDepositIds(nextProcessedDepositIds);
           setPendingDeposits(nextPendingDeposits);
-
-          saveUserData(nextWallet, undefined, undefined, nextTransactions, undefined, nextPendingDeposits, undefined);
+          saveUserData(newWallet, undefined, undefined, nextTransactions, undefined, nextPendingDeposits, undefined);
           showToast(`✅ APPROVED your deposit of UGX ${amount.toLocaleString()}!`, 'success');
         });
-      } catch (err) { /* admin server may be offline */ }
+      } catch {
+        // admin server may be offline
+      }
     };
 
     const interval = setInterval(checkApprovedDeposits, 8000);
     return () => clearInterval(interval);
   }, [user]);
+
+  useEffect(() => {
+    const checkApprovedWithdrawals = async () => {
+      if (!user) return;
+      try {
+        const res = await fetch(`${ADMIN_API}/api/transactions?userId=${user.id}&type=withdraw&status=approved`);
+        if (!res.ok) return;
+        const approvedWithdrawals = await res.json();
+
+        approvedWithdrawals.forEach((ad) => {
+          const withdrawalId = ad._id || ad.id || ad.withdrawal_id;
+          if (!withdrawalId) return;
+
+          const matchedPending = pendingWithdrawals.find((item) => String(item.id) === String(withdrawalId));
+          if (!matchedPending || matchedPending.processed) return;
+
+          const amount = Number(ad.amount || matchedPending.amount || 0);
+          const nextBalance = Math.max(0, (balanceAccount || 0) - amount);
+          const nextPendingWithdrawals = pendingWithdrawals.map((item) =>
+            String(item.id) === String(withdrawalId) ? { ...item, processed: true, adminStatus: 'approved' } : item
+          );
+          const nextTransactions = [{ id: `WTH-APP-${Date.now()}`, type: 'Withdraw', status: 'Approved', amount, date: new Date().toLocaleDateString() }, ...transactions];
+
+          setBalanceAccount(nextBalance);
+          setPendingWithdrawals(nextPendingWithdrawals);
+          setTransactions(nextTransactions);
+          saveUserData(undefined, nextBalance, undefined, nextTransactions, undefined, undefined, nextPendingWithdrawals);
+          showToast(`✅ Withdrawal of UGX ${amount.toLocaleString()} was approved by admin.`, 'success');
+        });
+      } catch {
+        // admin may be offline
+      }
+    };
+
+    const interval = setInterval(checkApprovedWithdrawals, 8000);
+    return () => clearInterval(interval);
+  }, [user, pendingWithdrawals, balanceAccount, transactions]);
 
   useEffect(() => {
     const rawUser = localStorage.getItem('user');
@@ -275,58 +329,13 @@ function Home() {
     setReferrals(persistedState.referrals || 0);
     setClaimedList(persistedState.claimedMilestones || []);
     setTransactions(persistedState.transactions || []);
-
-    const savedPending = (persistedState.pendingDeposits || []).map(pd => ({
-      ...pd,
-      processed: true
-    }));
-    setPendingDeposits(savedPending);
+    setPendingDeposits((persistedState.pendingDeposits || []).map((pd) => ({ ...pd, processed: true })));
     setPendingWithdrawals(persistedState.pendingWithdrawals || []);
-
-    const savedProcessedIds = persistedState.processedDepositIds || [];
-    setProcessedDepositIds(savedProcessedIds);
-    processedIdsRef.current = savedProcessedIds;
-
-    const approvedIds = savedPending
-      .filter(pd => pd.adminStatus === 'approved')
-      .map(pd => pd.id);
-
-    const allProcessedIds = [...new Set([...savedProcessedIds, ...approvedIds])];
-    setProcessedDepositIds(allProcessedIds);
-    processedIdsRef.current = allProcessedIds;
-
-    const savedMachines = persistedState.activeMachines || [];
-    const machinesWithTime = savedMachines.map(m => ({
-      ...m,
-      purchasedAt: m.purchasedAt || new Date().toISOString(),
-      claimed: m.claimed || false
-    }));
-    setActiveMachines(machinesWithTime);
+    setProcessedDepositIds(persistedState.processedDepositIds || []);
+    setActiveMachines((persistedState.activeMachines || []).map((m) => ({ ...m, purchasedAt: m.purchasedAt || new Date().toISOString(), claimed: m.claimed || false })));
   }, [navigate]);
 
-  const saveUserData = (newWallet, newBalance, newMachines, newTransactions, newClaimed, newPendingDeposits, newPendingWithdrawals) => {
-    const currentUser = user || latestStateRef.current?.user;
-    if (!currentUser?.id) return;
-
-    const snapshot = latestStateRef.current || {};
-    const updatedUser = {
-      ...currentUser,
-      walletBalance: newWallet !== undefined ? newWallet : snapshot.walletBalance ?? walletBalance,
-      balanceAccount: newBalance !== undefined ? newBalance : snapshot.balanceAccount ?? balanceAccount,
-      activeMachines: newMachines !== undefined ? newMachines : snapshot.activeMachines ?? activeMachines,
-      transactions: newTransactions !== undefined ? newTransactions : snapshot.transactions ?? transactions,
-      claimedMilestones: newClaimed !== undefined ? newClaimed : snapshot.claimedList ?? claimedList,
-      pendingDeposits: newPendingDeposits !== undefined ? newPendingDeposits : snapshot.pendingDeposits ?? pendingDeposits,
-      pendingWithdrawals: newPendingWithdrawals !== undefined ? newPendingWithdrawals : snapshot.pendingWithdrawals ?? pendingWithdrawals,
-      processedDepositIds: snapshot.processedDepositIds ?? processedDepositIds
-    };
-
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    localStorage.setItem(getUserStateStorageKey(currentUser.id), JSON.stringify(updatedUser));
-    setUser(updatedUser);
-  };
-
-  const referralLink = user ? `${window.location.origin}/register?ref=${user.id}` : "";
+  const referralLink = user ? `${window.location.origin}/register?ref=${user.id}` : '';
   const shareMessage = `Hey! Join this hardware energy app! Sign up here: ${referralLink}`;
 
   const triggerDepositFlow = () => {
@@ -348,41 +357,33 @@ function Home() {
   };
 
   const handlePaymentIdSubmit = async (e) => {
-    if (e && e.preventDefault) e.preventDefault();
+    e.preventDefault();
     const amount = Number(depositAmount);
     const normalizedPaymentId = paymentId.trim();
 
-    if (!amount || amount <= 0) return showToast("❌ Enter a valid amount.", 'error');
-    if (!normalizedPaymentId) return showToast("❌ Enter the payment ID.", 'error');
-    if (!/^\d+$/.test(normalizedPaymentId)) return showToast("❌ Transaction ID must contain only numbers.", 'error');
+    if (!amount || amount <= 0) return showToast('❌ Enter a valid amount.', 'error');
+    if (!normalizedPaymentId) return showToast('❌ Enter the payment ID.', 'error');
+    if (!/^\d+$/.test(normalizedPaymentId)) return showToast('❌ Transaction ID must contain only numbers.', 'error');
     if (normalizedPaymentId.length < 10 || normalizedPaymentId.length > 14) return showToast(`❌ Transaction ID must be between 10 and 14 digits for ${depositNetwork}.`, 'error');
-    if (!user?.id) return showToast("❌ You need to be logged in to submit a deposit.", 'error');
+    if (!user?.id) return showToast('❌ You need to be logged in to submit a deposit.', 'error');
 
     try {
       const response = await fetch(`${ADMIN_API}/api/account/deposit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          amount,
-          transactionId: normalizedPaymentId
-        })
+        body: JSON.stringify({ userId: user.id, amount, transactionId: normalizedPaymentId })
       });
 
       const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Deposit submission failed');
-      }
+      if (!response.ok) throw new Error(data.message || 'Deposit submission failed');
 
       const newTxn = { id: `DEP-${Math.floor(1000 + Math.random() * 9000)}`, type: 'Deposit', status: 'Pending', amount, date: new Date().toLocaleDateString() };
       const newTransactions = [newTxn, ...transactions];
-      setTransactions(newTransactions);
-
       const processedDeposit = { id: `SERVER-${Date.now()}`, amount, type: 'deposit', processed: false, adminStatus: 'pending', paymentId: normalizedPaymentId };
       const newPendingDeposits = [...pendingDeposits, processedDeposit];
-      setPendingDeposits(newPendingDeposits);
 
+      setTransactions(newTransactions);
+      setPendingDeposits(newPendingDeposits);
       saveUserData(undefined, undefined, undefined, newTransactions, undefined, newPendingDeposits, undefined);
 
       showToast('✅ Deposit submitted for admin verification.', 'success');
@@ -390,14 +391,13 @@ function Home() {
       setPaymentId('');
       setCurrentView('dashboard');
     } catch (err) {
-      console.error('Deposit submission error:', err);
       showToast(`❌ ${err.message}`, 'error');
     }
   };
 
   const handleDepositNext = () => {
     const amount = Number(depositAmount);
-    if (!amount || amount <= 0) return showToast("❌ Enter a valid amount.", 'error');
+    if (!amount || amount <= 0) return showToast('❌ Enter a valid amount.', 'error');
     setShowPaymentModal(true);
   };
 
@@ -410,9 +410,9 @@ function Home() {
   const handleWithdrawSubmit = async (e) => {
     e.preventDefault();
     const amt = Number(withdrawAmount);
-    if (!amt || amt <= 0) return showToast("❌ Enter a valid withdrawal amount.", 'error');
-    if (balanceAccount < amt) return showToast("❌ Insufficient Balance Account funds.", 'error');
-    if (!withdrawPhone.trim()) return showToast("❌ Enter your mobile money phone number.", 'error');
+    if (!amt || amt <= 0) return showToast('❌ Enter a valid withdrawal amount.', 'error');
+    if (balanceAccount < amt) return showToast('❌ Insufficient Balance Account funds.', 'error');
+    if (!withdrawPhone.trim()) return showToast('❌ Enter your mobile money phone number.', 'error');
 
     try {
       const res = await fetch(`${ADMIN_API}/api/submit-withdrawal`, {
@@ -435,20 +435,16 @@ function Home() {
         const data = await res.json();
         const withdrawalId = data.withdrawal_id || data.id || `W-${Date.now()}`;
 
-        const newBalance = balanceAccount - amt;
-        setBalanceAccount(newBalance);
-
         const newPendingWithdrawal = { id: withdrawalId, amount: amt, type: 'withdraw', processed: false, adminStatus: 'pending' };
         const newPendingWithdrawals = [...pendingWithdrawals, newPendingWithdrawal];
-        setPendingWithdrawals(newPendingWithdrawals);
-
-        const newTxn = { id: `WTH-PEND-${Math.floor(1000 + Math.random() * 9000)}`, type: "Withdraw", status: "Pending", amount: amt, date: new Date().toLocaleDateString() };
+        const newTxn = { id: `WTH-PEND-${Math.floor(1000 + Math.random() * 9000)}`, type: 'Withdraw', status: 'Pending', amount: amt, date: new Date().toLocaleDateString() };
         const newTransactions = [newTxn, ...transactions];
+
+        setPendingWithdrawals(newPendingWithdrawals);
         setTransactions(newTransactions);
+        saveUserData(undefined, balanceAccount, undefined, newTransactions, undefined, undefined, newPendingWithdrawals);
 
-        saveUserData(undefined, newBalance, undefined, newTransactions, undefined, undefined, newPendingWithdrawals);
-
-        showToast(`⏳ Withdrawal of UGX ${amt.toLocaleString()} submitted for admin approval. You'll be notified when processed.`, 'info');
+        showToast('⏳ Withdrawal submitted for admin approval. Amount remains in Balance Account until approved.', 'info');
         setWithdrawAmount('');
         setReceiveAmount(0);
         setCurrentView('dashboard');
@@ -456,21 +452,21 @@ function Home() {
         const errData = await res.json().catch(() => ({}));
         showToast(`❌ ${errData.message || 'Failed to submit withdrawal.'}`, 'error');
       }
-    } catch (err) {
-      showToast("❌ Cannot reach the backend server. Please try again later.", 'error');
+    } catch {
+      showToast('❌ Cannot reach the backend server. Please try again later.', 'error');
     }
   };
 
-  const hasActiveMachine = (productId) => activeMachines.some(m => {
+  const hasActiveMachine = (productId) => activeMachines.some((m) => {
     const endTime = new Date(m.purchasedAt).getTime() + (m.days * 24 * 60 * 60 * 1000);
     return m.productId === productId && Date.now() < endTime && !m.claimed;
   });
 
   const initiatePurchaseSequence = (product) => {
     if (hasActiveMachine(product.id)) {
-      return showToast("❌ Machine Locked! You already leased this machine.", 'error');
+      return showToast('❌ Machine Locked! You already leased this machine.', 'error');
     }
-    if (walletBalance < product.price) return showToast("❌ Insufficient Wallet funds.", 'error');
+    if (walletBalance < product.price) return showToast('❌ Insufficient Wallet funds.', 'error');
     setSelectedProductToBuy(product);
     setShowConfirmModal(true);
   };
@@ -478,9 +474,9 @@ function Home() {
   const executeConfirmedPurchase = () => {
     setShowConfirmModal(false);
     if (!selectedProductToBuy) return;
+
     const product = selectedProductToBuy;
     const newWallet = walletBalance - product.price;
-
     const newMachine = {
       id: product.id + '-' + Date.now(),
       productId: product.id,
@@ -498,7 +494,7 @@ function Home() {
     setActiveMachines(updatedMachines);
     setWalletBalance(newWallet);
 
-    const newTxn = { id: `FLEET-${Math.floor(1000 + Math.random() * 9000)}`, type: "Purchase", status: "Success", amount: product.price, date: new Date().toLocaleDateString() };
+    const newTxn = { id: `FLEET-${Math.floor(1000 + Math.random() * 9000)}`, type: 'Purchase', status: 'Success', amount: product.price, date: new Date().toLocaleDateString() };
     const newTransactions = [newTxn, ...transactions];
     setTransactions(newTransactions);
     saveUserData(newWallet, undefined, updatedMachines, newTransactions);
@@ -511,12 +507,10 @@ function Home() {
     if (!completedMachine) return;
     const newBalance = balanceAccount + completedMachine.totalReturn;
     setBalanceAccount(newBalance);
-    const updatedMachines = activeMachines.map(m =>
-      m.id === completedMachine.id ? { ...m, claimed: true } : m
-    );
+    const updatedMachines = activeMachines.map((m) => (m.id === completedMachine.id ? { ...m, claimed: true } : m));
     setActiveMachines(updatedMachines);
 
-    const newTxn = { id: `PROFIT-${Math.floor(1000 + Math.random() * 9000)}`, type: "Profit", status: "Verified", amount: completedMachine.totalReturn, date: new Date().toLocaleDateString() };
+    const newTxn = { id: `PROFIT-${Math.floor(1000 + Math.random() * 9000)}`, type: 'Profit', status: 'Verified', amount: completedMachine.totalReturn, date: new Date().toLocaleDateString() };
     const newTransactions = [newTxn, ...transactions];
     setTransactions(newTransactions);
     saveUserData(undefined, newBalance, updatedMachines, newTransactions);
@@ -529,12 +523,14 @@ function Home() {
   function getMachineCountdown(machine) {
     const endTime = new Date(machine.purchasedAt).getTime() + (machine.days * 24 * 60 * 60 * 1000);
     const remaining = endTime - Date.now();
-    if (remaining <= 0) return { completed: true, display: "✅ Completed!", progress: 100 };
+    if (remaining <= 0) return { completed: true, display: '✅ Completed!', progress: 100 };
+
     const totalSecs = Math.floor(remaining / 1000);
     const days = Math.floor(totalSecs / (24 * 60 * 60));
     const hours = Math.floor((totalSecs % (24 * 60 * 60)) / (60 * 60));
     const mins = Math.floor((totalSecs % (60 * 60)) / 60);
     const secs = totalSecs % 60;
+
     return {
       completed: false,
       display: `${days}d ${hours.toString().padStart(2, '0')}h ${mins.toString().padStart(2, '0')}m ${secs.toString().padStart(2, '0')}s`,
@@ -567,10 +563,6 @@ function Home() {
         label = '❌ Deposit Rejected';
         sign = '✕';
         color = '#ff4444';
-      } else {
-        label = '💸 Deposit';
-        sign = '+';
-        color = '#00FF66';
       }
     } else if (txn.type === 'Withdraw') {
       if (isPending) {
@@ -585,10 +577,6 @@ function Home() {
         label = '↩ Withdraw Refunded';
         sign = '↩';
         color = '#ff4444';
-      } else {
-        label = '📤 Withdraw';
-        sign = '-';
-        color = '#ff4444';
       }
     } else if (txn.type === 'Purchase') {
       label = '🛒 Purchase';
@@ -599,12 +587,18 @@ function Home() {
     return { label, sign, color };
   }
 
-  const copyToClipboard = () => { navigator.clipboard.writeText(referralLink); showToast("📋 Link copied!", 'success'); };
-  const shareOnWhatsApp = () => { window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage)}`, '_blank'); };
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(referralLink);
+    showToast('📋 Link copied!', 'success');
+  };
+
+  const shareOnWhatsApp = () => {
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage)}`, '_blank');
+  };
 
   const handleClaimReward = (targetCount) => {
     if (claimedList.includes(targetCount)) {
-      return showToast("✅ Reward already claimed.", 'info');
+      return showToast('✅ Reward already claimed.', 'info');
     }
     const rewardAmounts = { 2: 3000, 5: 10000, 10: 20000, 15: 0, 20: 45000, 25: 60000, 30: 0, 40: 90000, 50: 130000, 60: 0 };
     const amount = rewardAmounts[targetCount] ?? 0;
@@ -613,10 +607,11 @@ function Home() {
     setWalletBalance(newWallet);
     setClaimedList(newClaimed);
     saveUserData(newWallet, undefined, undefined, undefined, newClaimed);
+
     if (amount > 0) {
       showToast(`✅ Reward claimed! UGX ${amount.toLocaleString()} added to Wallet!`, 'success');
     } else {
-      showToast(`✅ Milestone reached! Contact admin for your special reward.`, 'success');
+      showToast('✅ Milestone reached! Contact admin for your special reward.', 'success');
     }
   };
 
@@ -660,7 +655,7 @@ function Home() {
     return (
       <div style={{ backgroundColor: '#000000', minHeight: '100vh', color: '#ffffff', fontFamily: 'sans-serif', padding: '20px', boxSizing: 'border-box' }}>
         <ToastBar />
-        <button onClick={() => setCurrentView('dashboard')} style={{ backgroundColor: '#111', border: '1px solid #333', color: '#00FF66', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', marginBottom: '15px' }}>← Back</button>
+        <button onClick={() => setCurrentView('dashboard')} style={{ backgroundColor: '#111', border: '1px solid #333', color: '#00FF66', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', marginBottom: '15px' }}>Back</button>
         <h2 style={{ color: '#00FF66', marginTop: 0 }}>DEPOSIT FUNDS</h2>
         <div style={{ backgroundColor: '#111', padding: '16px', borderRadius: '10px', border: '2px solid #00FF66', marginBottom: '20px' }}>
           <span style={{ fontSize: '11px', color: '#00FF66', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>SEND MONEY TO</span>
@@ -674,7 +669,7 @@ function Home() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
           <button onClick={() => setDepositNetwork('MTN')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: depositNetwork === 'MTN' ? '#00FF66' : '#1c1c1c', color: depositNetwork === 'MTN' ? '#000' : '#fff' }}>MTN Mobile Money</button>
-          <button onClick={() => setDepositNetwork('Airtel')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: depositNetwork === 'Airtel' ? '#FFCC00' : '#1c1c1c', color: depositNetwork === 'Airtel' ? '#000' : '#fff' }}>Airtel Money</button>
+          <button onClick={() => setDepositNetwork('Airtel')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: depositNetwork === 'Airtel' ? '#FFD700' : '#1c1c1c', color: depositNetwork === 'Airtel' ? '#000' : '#fff' }}>Airtel Money</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div>
@@ -697,16 +692,7 @@ function Home() {
               <form onSubmit={handlePaymentIdSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 <div>
                   <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>🔑 TRANSACTION ID</label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    placeholder="10-14 digit mobile money transaction ID"
-                    required
-                    value={paymentId}
-                    onChange={(e) => handleTransactionIdChange(e.target.value)}
-                    style={{ width: '100%', boxSizing: 'border-box', padding: '14px', borderRadius: '8px', border: '1px solid #333', backgroundColor: '#111', color: '#fff' }}
-                  />
+                  <input type="text" inputMode="numeric" pattern="[0-9]*" placeholder="10-14 digit mobile money transaction ID" required value={paymentId} onChange={(e) => handleTransactionIdChange(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', borderRadius: '8px', border: '1px solid #333', backgroundColor: '#111', color: '#fff' }} />
                 </div>
                 <div style={{ backgroundColor: '#0a1f12', border: '1px solid #FFD700', borderRadius: '6px', padding: '12px', fontSize: '12px', color: '#aaa', textAlign: 'center' }}>
                   ⏳ Your deposit will be sent to admin for verification. ID must be 10–14 digits only.
@@ -727,7 +713,7 @@ function Home() {
     return (
       <div style={{ backgroundColor: '#000000', minHeight: '100vh', color: '#ffffff', fontFamily: 'sans-serif', padding: '20px' }}>
         <ToastBar />
-        <button onClick={() => { setCurrentView('dashboard'); setWithdrawAmount(''); }} style={{ backgroundColor: '#111', border: '1px solid #333', color: '#ff4444', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', marginBottom: '15px' }}>← Back</button>
+        <button onClick={() => { setCurrentView('dashboard'); setWithdrawAmount(''); }} style={{ backgroundColor: '#111', border: '1px solid #333', color: '#ff4444', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', marginBottom: '15px' }}>Back</button>
         <h2 style={{ color: '#ff4444', marginTop: 0 }}>WITHDRAW FUNDS</h2>
         <div style={{ backgroundColor: '#0a0a0a', border: '2px solid #00BCFF', padding: '15px', borderRadius: '8px', marginBottom: '15px', fontSize: '13px', color: '#aaa' }}>
           ⚖️ Balance Account: <strong style={{ color: '#00BCFF' }}>UGX {balanceAccount.toLocaleString()}</strong><br />
@@ -736,7 +722,7 @@ function Home() {
         <form onSubmit={handleWithdrawSubmit} style={{ backgroundColor: '#0a0a0a', border: '2px solid #ff4444', padding: '20px', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div>
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>AMOUNT (UGX)</label>
-            <input type="number" placeholder="e.g. 20000" required value={withdrawAmount} onChange={handleWithdrawAmountChange} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: '#fff' }} />
+            <input type="number" placeholder="e.g. 20000" required value={withdrawAmount} onChange={handleWithdrawAmountChange} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', borderRadius: '8px', border: '1px solid #333', backgroundColor: '#111', color: '#fff' }} />
           </div>
           <div style={{ backgroundColor: '#111', padding: '15px', borderRadius: '6px', border: '1px solid #222' }}>
             <span style={{ fontSize: '12px', color: '#ff4444', fontWeight: 'bold' }}>YOU RECEIVE (after 10% fee):</span>
@@ -744,11 +730,11 @@ function Home() {
           </div>
           <div>
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>📱 MOBILE MONEY PHONE</label>
-            <input type="tel" placeholder="e.g. 0760704907" required value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: '#fff' }} />
+            <input type="tel" placeholder="e.g. 0760704907" required value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', borderRadius: '8px', border: '1px solid #333', backgroundColor: '#111', color: '#fff' }} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <button type="button" onClick={() => setWithdrawNetwork('MTN')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: withdrawNetwork === 'MTN' ? '#00BCFF' : '#1c1c1c', color: withdrawNetwork === 'MTN' ? '#000' : '#fff' }}>MTN</button>
-            <button type="button" onClick={() => setWithdrawNetwork('Airtel')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: withdrawNetwork === 'Airtel' ? '#FFCC00' : '#1c1c1c', color: withdrawNetwork === 'Airtel' ? '#000' : '#fff' }}>Airtel</button>
+            <button type="button" onClick={() => setWithdrawNetwork('Airtel')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: withdrawNetwork === 'Airtel' ? '#FFD700' : '#1c1c1c', color: withdrawNetwork === 'Airtel' ? '#000' : '#fff' }}>Airtel</button>
           </div>
           <div style={{ backgroundColor: '#1a0a0a', border: '1px solid #ff4444', borderRadius: '6px', padding: '12px', fontSize: '12px', color: '#aaa', textAlign: 'center' }}>
             ⏳ Amount will be frozen in Balance Account and sent to admin for approval. You'll be notified when processed.
@@ -796,7 +782,7 @@ function Home() {
       {isMenuOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 6000, display: 'flex' }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onClick={() => setIsMenuOpen(false)} />
-          <div style={{ position: 'relative', width: '280px', height: '100%', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderRight: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '20px 18px', boxSizing: 'border-box' }}>
+          <div style={{ position: 'relative', width: '280px', height: '100%', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderRight: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '20px', boxSizing: 'border-box' }}>
             <button onClick={() => setIsMenuOpen(false)} style={{ position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', color: '#888', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>✕</button>
             <h3 style={{ margin: '15px 0 5px 0', color: isDarkMode ? '#00FF66' : '#107C41', borderBottom: '1px solid #222', paddingBottom: '10px', fontSize: '18px' }}>Menu</h3>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '18px', fontSize: '14px', fontWeight: '500' }}>
@@ -817,11 +803,10 @@ function Home() {
             <p style={{ color: '#ccc', fontSize: '14px', marginBottom: '20px' }}>
               Lease <strong>{selectedProductToBuy.name}</strong> for <strong>UGX {selectedProductToBuy.price.toLocaleString()}</strong> from Wallet?
             </p>
-            <div style={{ backgroundColor: '#111', padding: '12px', borderRadius: '6px', marginBottom: '15px', borderLeft: '4px solid', borderLeftColor: selectedProductToBuy.classTier === 'B' ? '#00BCFF' : selectedProductToBuy.classTier === 'C' ? '#FFD700' : '#00FF66' }}>
+            <div style={{ backgroundColor: '#111', padding: '12px', borderRadius: '6px', marginBottom: '15px', borderLeft: '4px solid', borderLeftColor: selectedProductToBuy.classTier === 'B' ? '#00BCFF' : '#00FF66' }}>
               Class {selectedProductToBuy.classTier} · {selectedProductToBuy.days} days
               <div style={{ marginTop: '8px', color: '#ddd' }}>
                 {selectedProductToBuy.classTier === 'B' && <>200% Profit → <strong style={{ color: '#00BCFF' }}>UGX {getProductTotalReturn(selectedProductToBuy).toLocaleString()}</strong></>}
-                {selectedProductToBuy.classTier === 'C' && <>300% Profit → <strong style={{ color: '#FFD700' }}>UGX {getProductTotalReturn(selectedProductToBuy).toLocaleString()}</strong></>}
                 {selectedProductToBuy.classTier === 'A' && <>Projected return → <strong style={{ color: '#00FF66' }}>UGX {getProductTotalReturn(selectedProductToBuy).toLocaleString()}</strong></>}
               </div>
             </div>
@@ -836,7 +821,7 @@ function Home() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px', paddingBottom: '90px' }}>
         {activeTab === 'home' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-            <div style={{ background: isDarkMode ? 'linear-gradient(135deg, #111, #051a0e)' : 'linear-gradient(135deg, #fff, #e8f5e9)', padding: '25px', borderRadius: '12px', border: isDarkMode ? '2px solid #00FF66' : '2px solid #107C41' }}>
+            <div style={{ background: isDarkMode ? 'linear-gradient(135deg, #111, #051a0e)' : 'linear-gradient(135deg, #fff, #e8f5e9)', padding: '25px', borderRadius: '12px', border: isDarkMode ? '1px solid #00FF66' : '1px solid #107C41' }}>
               <p style={{ margin: 0, color: '#aaa', fontSize: '14px', fontWeight: 'bold' }}>TOTAL PORTFOLIO</p>
               <h1 style={{ margin: '12px 0 0 0', color: isDarkMode ? '#fff' : '#212529', fontSize: '38px', fontWeight: 'bold' }}>UGX {(walletBalance + balanceAccount).toLocaleString()}</h1>
             </div>
@@ -854,18 +839,14 @@ function Home() {
               </div>
             </div>
 
-            {(pendingDeposits.some(p => !p.processed) || pendingWithdrawals.some(p => !p.processed)) && (
+            {(pendingDeposits.some((p) => !p.processed) || pendingWithdrawals.some((p) => !p.processed)) && (
               <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #FFD700', borderRadius: '8px', padding: '14px', fontSize: '12px', color: '#aaa' }}>
                 <span style={{ color: '#FFD700', fontWeight: 'bold' }}>⏳ PENDING APPROVALS</span>
-                {pendingDeposits.filter(p => !p.processed).length > 0 && (
-                  <div style={{ marginTop: '6px' }}>
-                    💸 {pendingDeposits.filter(p => !p.processed).length} deposit(s) waiting for admin
-                  </div>
+                {pendingDeposits.filter((p) => !p.processed).length > 0 && (
+                  <div style={{ marginTop: '6px' }}>💸 {pendingDeposits.filter((p) => !p.processed).length} deposit(s) waiting for admin</div>
                 )}
-                {pendingWithdrawals.filter(p => !p.processed).length > 0 && (
-                  <div style={{ marginTop: '4px' }}>
-                    📤 {pendingWithdrawals.filter(p => !p.processed).length} withdrawal(s) waiting for admin
-                  </div>
+                {pendingWithdrawals.filter((p) => !p.processed).length > 0 && (
+                  <div style={{ marginTop: '4px' }}>📤 {pendingWithdrawals.filter((p) => !p.processed).length} withdrawal(s) waiting for admin</div>
                 )}
               </div>
             )}
@@ -910,17 +891,16 @@ function Home() {
               ⚖️ Balance Account: <strong style={{ color: '#00BCFF' }}>UGX {balanceAccount.toLocaleString()}</strong><br />
               💼 Wallet: <strong style={{ color: '#00FF66' }}>UGX {walletBalance.toLocaleString()}</strong> (used for leasing machines)
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <button onClick={() => setSelectedClass('A')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'A' ? '#00FF66' : '#1c1c1c', color: selectedClass === 'A' ? '#000' : '#fff' }}>A</button>
               <button onClick={() => setSelectedClass('B')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'B' ? '#00BCFF' : '#1c1c1c', color: selectedClass === 'B' ? '#000' : '#fff' }}>B</button>
-              <button onClick={() => setSelectedClass('C')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'C' ? '#FFD700' : '#1c1c1c', color: selectedClass === 'C' ? '#000' : '#fff' }}>C</button>
-              <button onClick={() => setSelectedClass('D')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'D' ? '#ff4444' : '#1c1c1c', color: '#fff' }}>D</button>
             </div>
             {powerbankCatalog[selectedClass].map((product) => {
               const totalReturn = getProductTotalReturn(product);
               const profit = getProductProfit(product);
               const hasActive = hasActiveMachine(product.id);
               const canBuy = !hasActive && walletBalance >= product.price;
+
               return (
                 <div key={product.id} style={{ display: 'flex', backgroundColor: isDarkMode ? '#111' : '#fff', borderRadius: '10px', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', overflow: 'hidden' }}>
                   <div style={{ width: '25%', backgroundColor: isDarkMode ? '#1a1a1a' : '#f1f3f5', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px' }}>
@@ -939,15 +919,7 @@ function Home() {
                         </div>
                       )}
                     </div>
-                    <button
-                      onClick={() => initiatePurchaseSequence(product)}
-                      disabled={!canBuy}
-                      style={{
-                        alignSelf: 'flex-end',
-                        backgroundColor: !canBuy ? '#333' : (isDarkMode ? '#00FF66' : '#107C41'),
-                        color: !canBuy ? '#666' : (isDarkMode ? '#000' : '#fff'),
-                        border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', cursor: canBuy ? 'pointer' : 'not-allowed'
-                      }}>
+                    <button onClick={() => initiatePurchaseSequence(product)} disabled={!canBuy} style={{ alignSelf: 'flex-end', backgroundColor: !canBuy ? '#333' : (isDarkMode ? '#00FF66' : '#107C41'), color: !canBuy ? '#666' : (isDarkMode ? '#000' : '#fff'), border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', cursor: canBuy ? 'pointer' : 'not-allowed' }}>
                       {hasActive ? '🔒 Locked' : !canBuy ? 'Need Wallet' : 'Lease'}
                     </button>
                   </div>
@@ -973,14 +945,9 @@ function Home() {
                 const countdown = getMachineCountdown(mach);
                 const profit = mach.profit || calculateProfit(mach.price, mach.classTier);
                 const totalReturn = mach.totalReturn || calculateTotalReturn(mach.price, mach.classTier);
-                const classColor = mach.classTier === 'B' ? '#00BCFF' : mach.classTier === 'C' ? '#FFD700' : '#00FF66';
+                const classColor = mach.classTier === 'B' ? '#00BCFF' : '#00FF66';
                 return (
-                  <div key={idx} style={{
-                    padding: '16px',
-                    backgroundColor: isDarkMode ? '#0a0a0a' : '#fff',
-                    border: countdown.completed && !mach.claimed ? '2px solid #FFD700' : mach.claimed ? '1px solid #333' : isDarkMode ? '1px solid #111' : '1px solid #dee2e6',
-                    borderRadius: '10px', opacity: mach.claimed ? 0.6 : 1
-                  }}>
+                  <div key={idx} style={{ padding: '16px', backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: countdown.completed && !mach.claimed ? '2px solid #FFD700' : mach.claimed ? '1px solid #333' : isDarkMode ? '1px solid #111' : '1px solid #dee2e6', borderRadius: '10px', opacity: mach.claimed ? 0.6 : 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                       <div>
                         <span style={{ fontWeight: 'bold', fontSize: '14px', color: isDarkMode ? '#fff' : '#212529' }}>{mach.name}</span>
@@ -1048,10 +1015,10 @@ function Home() {
                         <strong style={{ color: isDarkMode ? '#fff' : '#212529', fontSize: '14px' }}>{roadmap.reward}</strong>
                       </div>
                       <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '11px' }}>{roadmap.desc}</p>
-                      <span style={{ fontSize: '11px', color: referrals >= roadmap.target ? '#00FF66' : '#ff4444', fontWeight: 'bold', display: 'block', marginTop: '4px' }}>{referrals}/{roadmap.target} referrals</span>
+                      <span style={{ fontSize: '11px', color: referrals >= roadmap.target ? '#00FF66' : '#ff4444', fontWeight: 'bold', display: 'block', marginTop: '4px' }}>{referrals}/{roadmap.target}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <button disabled={!canClaim} onClick={() => handleClaimReward(roadmap.target)} style={{ padding: '8px 12px', borderRadius: '4px', border: 'none', fontSize: '11px', fontWeight: 'bold', backgroundColor: isClaimed ? '#2e7d32' : canClaim ? '#00FF66' : '#333', color: isClaimed || canClaim ? '#000' : '#666', cursor: canClaim ? 'pointer' : 'not-allowed' }}>
+                      <button disabled={!canClaim} onClick={() => handleClaimReward(roadmap.target)} style={{ padding: '8px 12px', borderRadius: '4px', border: 'none', fontSize: '11px', fontWeight: 'bold', cursor: canClaim ? 'pointer' : 'not-allowed', backgroundColor: isClaimed ? '#2e7d32' : canClaim ? '#00FF66' : '#333', color: isClaimed ? '#fff' : canClaim ? '#000' : '#666' }}>
                         {isClaimed ? '✓ Done' : canClaim ? 'Claim' : 'Locked'}
                       </button>
                     </div>
@@ -1063,31 +1030,14 @@ function Home() {
         )}
       </div>
 
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '70px', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderTop: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', zIndex: 1000 }}>
-        <button onClick={() => setActiveTab('home')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', color: activeTab === 'home' ? '#00FF66' : '#888' }}>
-          <span style={{ fontSize: '20px' }}>🏠</span>
-          <span style={{ fontSize: '11px', fontWeight: 'bold' }}>Home</span>
-        </button>
-        <button onClick={() => setActiveTab('buy')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', color: activeTab === 'buy' ? '#00FF66' : '#888' }}>
-          <span style={{ fontSize: '20px' }}>🛒</span>
-          <span style={{ fontSize: '11px', fontWeight: 'bold' }}>Lease</span>
-        </button>
-        <button onClick={() => setActiveTab('activity')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', color: activeTab === 'activity' ? '#00FF66' : '#888' }}>
-          <span style={{ fontSize: '20px' }}>⚡</span>
-          <span style={{ fontSize: '11px', fontWeight: 'bold' }}>Activity</span>
-        </button>
-        <button onClick={() => setActiveTab('rewards')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', color: activeTab === 'rewards' ? '#00FF66' : '#888' }}>
-          <span style={{ fontSize: '20px' }}>🎁</span>
-          <span style={{ fontSize: '11px', fontWeight: 'bold' }}>Rewards</span>
-        </button>
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '70px', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderTop: isDarkMode ? '1px solid #111' : '1px solid #dfe3e8', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', zIndex: 1000 }}>
+        <button onClick={() => setActiveTab('home')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: activeTab === 'home' ? '#00FF66' : '#888', cursor: 'pointer' }}><span style={{ fontSize: '20px' }}>🏠</span><span style={{ fontSize: '11px', fontWeight: 'bold' }}>Home</span></button>
+        <button onClick={() => setActiveTab('buy')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: activeTab === 'buy' ? '#00FF66' : '#888', cursor: 'pointer' }}><span style={{ fontSize: '20px' }}>🛒</span><span style={{ fontSize: '11px', fontWeight: 'bold' }}>Lease</span></button>
+        <button onClick={() => setActiveTab('activity')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: activeTab === 'activity' ? '#00FF66' : '#888', cursor: 'pointer' }}><span style={{ fontSize: '20px' }}>⚡</span><span style={{ fontSize: '11px', fontWeight: 'bold' }}>Activity</span></button>
+        <button onClick={() => setActiveTab('rewards')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: activeTab === 'rewards' ? '#00FF66' : '#888', cursor: 'pointer' }}><span style={{ fontSize: '20px' }}>🎁</span><span style={{ fontSize: '11px', fontWeight: 'bold' }}>Rewards</span></button>
       </div>
 
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
     </div>
   );
 }
