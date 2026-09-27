@@ -19,7 +19,7 @@ function PowerbankGraphic({ accentColor = '#00FF66' }) {
       boxSizing: 'border-box',
     }}>
       <div style={{ width: '80%', height: '2px', backgroundColor: accentColor, borderRadius: '2px', opacity: 0.8, boxShadow: `0 0 4px ${accentColor}` }} />
-      <div style={{ width: '85%', height: '22px', backgroundColor: '#050505', borderRadius: '4px', border: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'monospace', fontSize: '11px', fontWeight: 'bold', color: accentColor, textShadow: `0 0 5px ${accentColor}` }}>100%</div>
+      <div style={{ width: '85%', height: '22px', backgroundColor: '#050505', borderRadius: '4px', border: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'monospace', color: accentColor, fontWeight: 'bold', fontSize: '9px' }}>PWR</div>
       <div style={{ display: 'flex', gap: '5px', justifyContent: 'center', width: '100%' }}>
         <div style={{ width: '13px', height: '5px', backgroundColor: '#151515', border: '1px solid #333', borderRadius: '1px', position: 'relative' }}>
           <div style={{ width: '100%', height: '1px', backgroundColor: accentColor, position: 'absolute', top: 0, opacity: 0.7 }} />
@@ -127,7 +127,6 @@ function Home() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [currentAccount, setCurrentAccount] = useState(depositAccounts[0]);
 
-  // For toasts/alerts in-app
   const [toast, setToast] = useState(null);
 
   const showToast = (msg, type = 'info') => {
@@ -182,7 +181,6 @@ function Home() {
     };
   }, [user, walletBalance, balanceAccount, activeMachines, transactions, claimedList, pendingDeposits, pendingWithdrawals, processedDepositIds]);
 
-  // Live countdown tick - updates every 100ms for smooth countdown
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 100);
     return () => clearInterval(interval);
@@ -200,7 +198,6 @@ function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // Check for completed machines
   useEffect(() => {
     const completed = activeMachines.find(m => {
       const endTime = new Date(m.purchasedAt).getTime() + (m.days * 24 * 60 * 60 * 1000);
@@ -212,7 +209,6 @@ function Home() {
     }
   }, [now, activeMachines, showCompletionModal]);
 
-  // POLLING: Check for approved deposits from admin
   const processedIdsRef = useRef(processedDepositIds);
   useEffect(() => {
     processedIdsRef.current = processedDepositIds;
@@ -256,62 +252,57 @@ function Home() {
     return () => clearInterval(interval);
   }, [user]);
 
-  // Load user data on mount
-useEffect(() => {
-  const rawUser = localStorage.getItem('user');
-  if (!rawUser) {
-    navigate('/login');
-    return;
-  }
+  useEffect(() => {
+    const rawUser = localStorage.getItem('user');
+    if (!rawUser) {
+      navigate('/login');
+      return;
+    }
 
-  let persistedUser;
-  try {
-    persistedUser = JSON.parse(rawUser);
-  } catch {
-    navigate('/login');
-    return;
-  }
+    let persistedUser;
+    try {
+      persistedUser = JSON.parse(rawUser);
+    } catch {
+      navigate('/login');
+      return;
+    }
 
-  const persistedState = getStoredUserState(persistedUser?.id) || persistedUser;
+    const persistedState = getStoredUserState(persistedUser?.id) || persistedUser;
 
-  setUser(persistedUser);
-  setWalletBalance(persistedState.walletBalance || 0);
-  setBalanceAccount(persistedState.balanceAccount || 0);
-  setReferrals(persistedState.referrals || 0);
-  setClaimedList(persistedState.claimedMilestones || []);
-  setTransactions(persistedState.transactions || []);
+    setUser(persistedUser);
+    setWalletBalance(persistedState.walletBalance || 0);
+    setBalanceAccount(persistedState.balanceAccount || 0);
+    setReferrals(persistedState.referrals || 0);
+    setClaimedList(persistedState.claimedMilestones || []);
+    setTransactions(persistedState.transactions || []);
 
-  // Mark ALL saved pending deposits as already processed so they don't re-fire instantly
-  const savedPending = (persistedState.pendingDeposits || []).map(pd => ({
-    ...pd,
-    processed: true
-  }));
-  setPendingDeposits(savedPending);
-  setPendingWithdrawals(persistedState.pendingWithdrawals || []);
+    const savedPending = (persistedState.pendingDeposits || []).map(pd => ({
+      ...pd,
+      processed: true
+    }));
+    setPendingDeposits(savedPending);
+    setPendingWithdrawals(persistedState.pendingWithdrawals || []);
 
-  // Load the processed deposit IDs to prevent double-crediting
-  const savedProcessedIds = persistedState.processedDepositIds || [];
-  setProcessedDepositIds(savedProcessedIds);
-  processedIdsRef.current = savedProcessedIds;
+    const savedProcessedIds = persistedState.processedDepositIds || [];
+    setProcessedDepositIds(savedProcessedIds);
+    processedIdsRef.current = savedProcessedIds;
 
-  // KEY FIX: Also mark all approved deposits that are in pendingDeposits with adminStatus 'approved'
-  // as already processed so they don't get credited again
-  const approvedIds = savedPending
-    .filter(pd => pd.adminStatus === 'approved')
-    .map(pd => pd.id);
-  
-  const allProcessedIds = [...new Set([...savedProcessedIds, ...approvedIds])];
-  setProcessedDepositIds(allProcessedIds);
-  processedIdsRef.current = allProcessedIds;
+    const approvedIds = savedPending
+      .filter(pd => pd.adminStatus === 'approved')
+      .map(pd => pd.id);
 
-  const savedMachines = persistedState.activeMachines || [];
-  const machinesWithTime = savedMachines.map(m => ({
-    ...m,
-    purchasedAt: m.purchasedAt || new Date().toISOString(),
-    claimed: m.claimed || false
-  }));
-  setActiveMachines(machinesWithTime);
-}, [navigate]);
+    const allProcessedIds = [...new Set([...savedProcessedIds, ...approvedIds])];
+    setProcessedDepositIds(allProcessedIds);
+    processedIdsRef.current = allProcessedIds;
+
+    const savedMachines = persistedState.activeMachines || [];
+    const machinesWithTime = savedMachines.map(m => ({
+      ...m,
+      purchasedAt: m.purchasedAt || new Date().toISOString(),
+      claimed: m.claimed || false
+    }));
+    setActiveMachines(machinesWithTime);
+  }, [navigate]);
 
   const saveUserData = (newWallet, newBalance, newMachines, newTransactions, newClaimed, newPendingDeposits, newPendingWithdrawals) => {
     const currentUser = user || latestStateRef.current?.user;
@@ -351,14 +342,20 @@ useEffect(() => {
     setTimeout(() => setCurrentView('withdraw_portal'), 1200);
   };
 
-  // =====================
-  // DEPOSIT — send to admin for verification
-  // =====================
+  const handleTransactionIdChange = (value) => {
+    const cleaned = value.replace(/\D/g, '').slice(0, 14);
+    setPaymentId(cleaned);
+  };
+
   const handlePaymentIdSubmit = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     const amount = Number(depositAmount);
+    const normalizedPaymentId = paymentId.trim();
+
     if (!amount || amount <= 0) return showToast("❌ Enter a valid amount.", 'error');
-    if (!paymentId || !paymentId.trim()) return showToast("❌ Enter the payment ID.", 'error');
+    if (!normalizedPaymentId) return showToast("❌ Enter the payment ID.", 'error');
+    if (!/^\d+$/.test(normalizedPaymentId)) return showToast("❌ Transaction ID must contain only numbers.", 'error');
+    if (normalizedPaymentId.length < 10 || normalizedPaymentId.length > 14) return showToast(`❌ Transaction ID must be between 10 and 14 digits for ${depositNetwork}.`, 'error');
     if (!user?.id) return showToast("❌ You need to be logged in to submit a deposit.", 'error');
 
     try {
@@ -368,7 +365,7 @@ useEffect(() => {
         body: JSON.stringify({
           userId: user.id,
           amount,
-          transactionId: paymentId.trim()
+          transactionId: normalizedPaymentId
         })
       });
 
@@ -382,7 +379,7 @@ useEffect(() => {
       const newTransactions = [newTxn, ...transactions];
       setTransactions(newTransactions);
 
-      const processedDeposit = { id: `SERVER-${Date.now()}`, amount, type: 'deposit', processed: false, adminStatus: 'pending', paymentId: paymentId.trim() };
+      const processedDeposit = { id: `SERVER-${Date.now()}`, amount, type: 'deposit', processed: false, adminStatus: 'pending', paymentId: normalizedPaymentId };
       const newPendingDeposits = [...pendingDeposits, processedDeposit];
       setPendingDeposits(newPendingDeposits);
 
@@ -404,9 +401,6 @@ useEffect(() => {
     setShowPaymentModal(true);
   };
 
-  // =====================
-  // WITHDRAW — send to admin for approval (NOT processed locally)
-  // =====================
   const handleWithdrawAmountChange = (e) => {
     const value = e.target.value;
     setWithdrawAmount(value);
@@ -421,7 +415,6 @@ useEffect(() => {
     if (!withdrawPhone.trim()) return showToast("❌ Enter your mobile money phone number.", 'error');
 
     try {
-      // 1. Send withdrawal request to admin for approval
       const res = await fetch(`${ADMIN_API}/api/submit-withdrawal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -442,16 +435,13 @@ useEffect(() => {
         const data = await res.json();
         const withdrawalId = data.withdrawal_id || data.id || `W-${Date.now()}`;
 
-        // 2. Freeze the amount in Balance Account (deduct locally so they can't re-use it)
         const newBalance = balanceAccount - amt;
         setBalanceAccount(newBalance);
 
-        // 3. Track pending withdrawal
         const newPendingWithdrawal = { id: withdrawalId, amount: amt, type: 'withdraw', processed: false, adminStatus: 'pending' };
         const newPendingWithdrawals = [...pendingWithdrawals, newPendingWithdrawal];
         setPendingWithdrawals(newPendingWithdrawals);
 
-        // 4. Add pending transaction record
         const newTxn = { id: `WTH-PEND-${Math.floor(1000 + Math.random() * 9000)}`, type: "Withdraw", status: "Pending", amount: amt, date: new Date().toLocaleDateString() };
         const newTransactions = [newTxn, ...transactions];
         setTransactions(newTransactions);
@@ -476,9 +466,6 @@ useEffect(() => {
     return m.productId === productId && Date.now() < endTime && !m.claimed;
   });
 
-  // =====================
-  // BUY MACHINE — deducts from WALLET
-  // =====================
   const initiatePurchaseSequence = (product) => {
     if (hasActiveMachine(product.id)) {
       return showToast("❌ Machine Locked! You already leased this machine.", 'error');
@@ -520,9 +507,6 @@ useEffect(() => {
     setSelectedProductToBuy(null);
   };
 
-  // =====================
-  // CLAIM completed machine — goes to BALANCE ACCOUNT
-  // =====================
   const claimCompletedMachine = () => {
     if (!completedMachine) return;
     const newBalance = balanceAccount + completedMachine.totalReturn;
@@ -642,9 +626,6 @@ useEffect(() => {
     navigate('/login');
   };
 
-  // =====================
-  // TOAST COMPONENT
-  // =====================
   const ToastBar = () => {
     if (!toast) return null;
     const bgColor = toast.type === 'success' ? '#00FF66' : toast.type === 'error' ? '#ff4444' : '#FFD700';
@@ -667,20 +648,19 @@ useEffect(() => {
     return (
       <div style={{ backgroundColor: '#000000', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
         <style>{`@keyframes spinGoldCoin { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }`}</style>
-        <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#00FF66', border: '5px solid #00AA44', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 0 20px #00FF66', fontSize: '32px', fontWeight: 'bold', color: '#000', animation: 'spinGoldCoin 1.2s infinite linear' }}>$</div>
+        <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#00FF66', border: '5px solid #00AA44', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 0 20px rgba(0,255,102,0.5)', animation: 'spinGoldCoin 0.8s linear infinite' }}>
+          <span style={{ fontSize: '32px' }}>🪙</span>
+        </div>
         <h3 style={{ color: '#00FF66', marginTop: '20px', fontFamily: 'sans-serif', letterSpacing: '1px', fontSize: '14px' }}>PROCESSING...</h3>
       </div>
     );
   }
 
-  // =====================
-  // DEPOSIT VIEW
-  // =====================
   if (currentView === 'deposit_guide') {
     return (
       <div style={{ backgroundColor: '#000000', minHeight: '100vh', color: '#ffffff', fontFamily: 'sans-serif', padding: '20px', boxSizing: 'border-box' }}>
         <ToastBar />
-        <button onClick={() => setCurrentView('dashboard')} style={{ backgroundColor: '#111', border: '1px solid #333', color: '#00FF66', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', marginBottom: '20px', fontWeight: 'bold' }}>← Back</button>
+        <button onClick={() => setCurrentView('dashboard')} style={{ backgroundColor: '#111', border: '1px solid #333', color: '#00FF66', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', marginBottom: '15px' }}>← Back</button>
         <h2 style={{ color: '#00FF66', marginTop: 0 }}>DEPOSIT FUNDS</h2>
         <div style={{ backgroundColor: '#111', padding: '16px', borderRadius: '10px', border: '2px solid #00FF66', marginBottom: '20px' }}>
           <span style={{ fontSize: '11px', color: '#00FF66', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>SEND MONEY TO</span>
@@ -693,13 +673,13 @@ useEffect(() => {
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
-          <button onClick={() => setDepositNetwork('MTN')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: depositNetwork === 'MTN' ? '#FFCC00' : '#222', color: depositNetwork === 'MTN' ? '#000' : '#888' }}>MTN</button>
-          <button onClick={() => setDepositNetwork('Airtel')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: depositNetwork === 'Airtel' ? '#FF0000' : '#222', color: depositNetwork === 'Airtel' ? '#fff' : '#888' }}>Airtel</button>
+          <button onClick={() => setDepositNetwork('MTN')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: depositNetwork === 'MTN' ? '#00FF66' : '#1c1c1c', color: depositNetwork === 'MTN' ? '#000' : '#fff' }}>MTN Mobile Money</button>
+          <button onClick={() => setDepositNetwork('Airtel')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: depositNetwork === 'Airtel' ? '#FFCC00' : '#1c1c1c', color: depositNetwork === 'Airtel' ? '#000' : '#fff' }}>Airtel Money</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div>
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>💰 AMOUNT SENT (UGX)</label>
-            <input type="number" placeholder="e.g. 50000" required min="1" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', backgroundColor: '#111', color: '#fff', border: '1px solid #00FF66', borderRadius: '6px', fontSize: '14px' }} />
+            <input type="number" placeholder="e.g. 50000" required min="1" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', borderRadius: '8px', border: '1px solid #333', backgroundColor: '#111', color: '#fff' }} />
           </div>
           <div style={{ backgroundColor: '#0a1f12', border: '1px solid #FFD700', borderRadius: '6px', padding: '12px', fontSize: '12px', color: '#aaa', textAlign: 'center' }}>
             ⏳ After sending the money, click Next and enter your transaction ID in the popup window.
@@ -717,13 +697,22 @@ useEffect(() => {
               <form onSubmit={handlePaymentIdSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 <div>
                   <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>🔑 TRANSACTION ID</label>
-                  <input type="text" placeholder="Transaction ID from mobile money" required value={paymentId} onChange={(e) => setPaymentId(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', backgroundColor: '#111', color: '#fff', border: '1px solid #222', borderRadius: '6px', fontSize: '14px' }} />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="10-14 digit mobile money transaction ID"
+                    required
+                    value={paymentId}
+                    onChange={(e) => handleTransactionIdChange(e.target.value)}
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '14px', borderRadius: '8px', border: '1px solid #333', backgroundColor: '#111', color: '#fff' }}
+                  />
                 </div>
                 <div style={{ backgroundColor: '#0a1f12', border: '1px solid #FFD700', borderRadius: '6px', padding: '12px', fontSize: '12px', color: '#aaa', textAlign: 'center' }}>
-                  ⏳ Your deposit will be sent to admin for verification. You'll be notified once approved.
+                  ⏳ Your deposit will be sent to admin for verification. ID must be 10–14 digits only.
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <button type="button" onClick={() => setShowPaymentModal(false)} style={{ backgroundColor: '#222', color: '#888', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Back</button>
+                  <button type="button" onClick={() => setShowPaymentModal(false)} style={{ backgroundColor: '#222', color: '#888', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
                   <button type="submit" style={{ backgroundColor: '#00FF66', color: '#000', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Submit</button>
                 </div>
               </form>
@@ -734,23 +723,20 @@ useEffect(() => {
     );
   }
 
-  // =====================
-  // WITHDRAW VIEW — now sends to admin for approval
-  // =====================
   if (currentView === 'withdraw_portal') {
     return (
       <div style={{ backgroundColor: '#000000', minHeight: '100vh', color: '#ffffff', fontFamily: 'sans-serif', padding: '20px' }}>
         <ToastBar />
-        <button onClick={() => { setCurrentView('dashboard'); setWithdrawAmount(''); }} style={{ backgroundColor: '#111', border: '1px solid #333', color: '#ff4444', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', marginBottom: '20px', fontWeight: 'bold' }}>← Back</button>
+        <button onClick={() => { setCurrentView('dashboard'); setWithdrawAmount(''); }} style={{ backgroundColor: '#111', border: '1px solid #333', color: '#ff4444', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', marginBottom: '15px' }}>← Back</button>
         <h2 style={{ color: '#ff4444', marginTop: 0 }}>WITHDRAW FUNDS</h2>
         <div style={{ backgroundColor: '#0a0a0a', border: '2px solid #00BCFF', padding: '15px', borderRadius: '8px', marginBottom: '15px', fontSize: '13px', color: '#aaa' }}>
           ⚖️ Balance Account: <strong style={{ color: '#00BCFF' }}>UGX {balanceAccount.toLocaleString()}</strong><br />
           <span style={{ fontSize: '11px' }}>10% fee applies. Admin approval required.</span>
         </div>
-        <form onSubmit={handleWithdrawSubmit} style={{ backgroundColor: '#0a0a0a', border: '2px solid #ff4444', padding: '20px', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handleWithdrawSubmit} style={{ backgroundColor: '#0a0a0a', border: '2px solid #ff4444', padding: '20px', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div>
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>AMOUNT (UGX)</label>
-            <input type="number" placeholder="e.g. 20000" required value={withdrawAmount} onChange={handleWithdrawAmountChange} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', backgroundColor: '#111', color: '#fff', border: '1px solid #222', borderRadius: '6px', fontSize: '14px' }} />
+            <input type="number" placeholder="e.g. 20000" required value={withdrawAmount} onChange={handleWithdrawAmountChange} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: '#fff' }} />
           </div>
           <div style={{ backgroundColor: '#111', padding: '15px', borderRadius: '6px', border: '1px solid #222' }}>
             <span style={{ fontSize: '12px', color: '#ff4444', fontWeight: 'bold' }}>YOU RECEIVE (after 10% fee):</span>
@@ -758,24 +744,21 @@ useEffect(() => {
           </div>
           <div>
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>📱 MOBILE MONEY PHONE</label>
-            <input type="tel" placeholder="e.g. 0760704907" required value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', backgroundColor: '#111', color: '#fff', border: '1px solid #222', borderRadius: '6px', fontSize: '14px' }} />
+            <input type="tel" placeholder="e.g. 0760704907" required value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px', color: '#fff' }} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <button type="button" onClick={() => setWithdrawNetwork('MTN')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: withdrawNetwork === 'MTN' ? '#FFCC00' : '#222', color: withdrawNetwork === 'MTN' ? '#000' : '#888' }}>MTN</button>
-            <button type="button" onClick={() => setWithdrawNetwork('Airtel')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: withdrawNetwork === 'Airtel' ? '#FF0000' : '#222', color: withdrawNetwork === 'Airtel' ? '#fff' : '#888' }}>Airtel</button>
+            <button type="button" onClick={() => setWithdrawNetwork('MTN')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: withdrawNetwork === 'MTN' ? '#00BCFF' : '#1c1c1c', color: withdrawNetwork === 'MTN' ? '#000' : '#fff' }}>MTN</button>
+            <button type="button" onClick={() => setWithdrawNetwork('Airtel')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: withdrawNetwork === 'Airtel' ? '#FFCC00' : '#1c1c1c', color: withdrawNetwork === 'Airtel' ? '#000' : '#fff' }}>Airtel</button>
           </div>
           <div style={{ backgroundColor: '#1a0a0a', border: '1px solid #ff4444', borderRadius: '6px', padding: '12px', fontSize: '12px', color: '#aaa', textAlign: 'center' }}>
             ⏳ Amount will be frozen in Balance Account and sent to admin for approval. You'll be notified when processed.
           </div>
-          <button type="submit" style={{ backgroundColor: '#ff4444', color: '#fff', border: 'none', padding: '14px', borderRadius: '6px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>Submit for Approval</button>
+          <button type="submit" style={{ backgroundColor: '#ff4444', color: '#fff', border: 'none', padding: '14px', borderRadius: '6px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>Submit Withdrawal</button>
         </form>
       </div>
     );
   }
 
-  // =====================
-  // COMPLETION MODAL
-  // =====================
   if (showCompletionModal && completedMachine) {
     return (
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 5000, padding: '20px' }}>
@@ -790,7 +773,7 @@ useEffect(() => {
               Cost: UGX {completedMachine.price.toLocaleString()} + Profit: UGX {completedMachine.profit.toLocaleString()}
             </div>
           </div>
-          <button onClick={claimCompletedMachine} style={{ backgroundColor: '#FFD700', color: '#000', border: 'none', padding: '14px 30px', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', width: '100%' }}>
+          <button onClick={claimCompletedMachine} style={{ backgroundColor: '#FFD700', color: '#000', border: 'none', padding: '14px 30px', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>
             🚀 CLAIM UGX {completedMachine.totalReturn.toLocaleString()}
           </button>
         </div>
@@ -798,16 +781,10 @@ useEffect(() => {
     );
   }
 
-  // =====================
-  // MAIN DASHBOARD
-  // =====================
   return (
-    <div style={{ backgroundColor: isDarkMode ? '#000000' : '#f8f9fa', minHeight: '100vh', color: isDarkMode ? '#ffffff' : '#212529', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
+    <div style={{ backgroundColor: isDarkMode ? '#000000' : '#f8f9fa', minHeight: '100vh', color: isDarkMode ? '#ffffff' : '#212529', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column' }}>
       <ToastBar />
-
-      {/* HEADER */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderBottom: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', position: 'sticky', top: 0, zIndex: 4000 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderBottom: isDarkMode ? '1px solid #111' : '1px solid #dee2e6' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <button onClick={() => setIsMenuOpen(!isMenuOpen)} style={{ background: 'none', border: 'none', color: isDarkMode ? '#00FF66' : '#107C41', fontSize: '24px', cursor: 'pointer', fontWeight: 'bold' }}>☰</button>
           <span style={{ fontWeight: 'bold', fontSize: '18px', color: isDarkMode ? '#fff' : '#212529' }}>Connect</span>
@@ -816,11 +793,10 @@ useEffect(() => {
         <span style={{ fontSize: '14px', fontWeight: 'bold', color: isDarkMode ? '#00FF66' : '#107C41' }}>Hi, {user?.username || 'user'}</span>
       </div>
 
-      {/* SIDE MENU */}
       {isMenuOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 6000, display: 'flex' }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onClick={() => setIsMenuOpen(false)} />
-          <div style={{ position: 'relative', width: '280px', height: '100%', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderRight: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ position: 'relative', width: '280px', height: '100%', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderRight: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '20px 18px', boxSizing: 'border-box' }}>
             <button onClick={() => setIsMenuOpen(false)} style={{ position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', color: '#888', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>✕</button>
             <h3 style={{ margin: '15px 0 5px 0', color: isDarkMode ? '#00FF66' : '#107C41', borderBottom: '1px solid #222', paddingBottom: '10px', fontSize: '18px' }}>Menu</h3>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '18px', fontSize: '14px', fontWeight: '500' }}>
@@ -828,13 +804,12 @@ useEffect(() => {
               <li><a href="#terms" onClick={() => setIsMenuOpen(false)} style={{ textDecoration: 'none', color: isDarkMode ? '#eee' : '#333' }}>📄 Terms & Conditions</a></li>
               <li><a href="#privacy" onClick={() => setIsMenuOpen(false)} style={{ textDecoration: 'none', color: isDarkMode ? '#eee' : '#333' }}>🛡️ Privacy Policy</a></li>
               <li><a href="#support" onClick={() => setIsMenuOpen(false)} style={{ textDecoration: 'none', color: isDarkMode ? '#eee' : '#333' }}>ℹ️ Help & Support</a></li>
-              <li style={{ borderTop: '1px solid #222', paddingTop: '15px', color: '#ff4444', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => { setIsMenuOpen(false); handleLogout(); }}>🚪 Log Out</li>
+              <li style={{ borderTop: '1px solid #222', paddingTop: '15px', color: '#ff4444', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => { setIsMenuOpen(false); handleLogout(); }}>🚪 Logout</li>
             </ul>
           </div>
         </div>
       )}
 
-      {/* PURCHASE CONFIRM MODAL */}
       {showConfirmModal && selectedProductToBuy && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 5000, padding: '20px' }}>
           <div style={{ backgroundColor: '#0a0a0a', border: '2px solid #00FF66', borderRadius: '12px', width: '100%', maxWidth: '360px', padding: '25px', boxSizing: 'border-box' }}>
@@ -842,7 +817,7 @@ useEffect(() => {
             <p style={{ color: '#ccc', fontSize: '14px', marginBottom: '20px' }}>
               Lease <strong>{selectedProductToBuy.name}</strong> for <strong>UGX {selectedProductToBuy.price.toLocaleString()}</strong> from Wallet?
             </p>
-            <div style={{ backgroundColor: '#111', padding: '12px', borderRadius: '6px', marginBottom: '15px', borderLeft: '4px solid', borderLeftColor: selectedProductToBuy.classTier === 'B' ? '#00BCFF' : selectedProductToBuy.classTier === 'C' ? '#FFD700' : '#00FF66', fontSize: '12px', color: '#aaa' }}>
+            <div style={{ backgroundColor: '#111', padding: '12px', borderRadius: '6px', marginBottom: '15px', borderLeft: '4px solid', borderLeftColor: selectedProductToBuy.classTier === 'B' ? '#00BCFF' : selectedProductToBuy.classTier === 'C' ? '#FFD700' : '#00FF66' }}>
               Class {selectedProductToBuy.classTier} · {selectedProductToBuy.days} days
               <div style={{ marginTop: '8px', color: '#ddd' }}>
                 {selectedProductToBuy.classTier === 'B' && <>200% Profit → <strong style={{ color: '#00BCFF' }}>UGX {getProductTotalReturn(selectedProductToBuy).toLocaleString()}</strong></>}
@@ -858,10 +833,7 @@ useEffect(() => {
         </div>
       )}
 
-      {/* MAIN CONTENT */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px', paddingBottom: '90px' }}>
-
-        {/* ========== HOME TAB ========== */}
         {activeTab === 'home' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
             <div style={{ background: isDarkMode ? 'linear-gradient(135deg, #111, #051a0e)' : 'linear-gradient(135deg, #fff, #e8f5e9)', padding: '25px', borderRadius: '12px', border: isDarkMode ? '2px solid #00FF66' : '2px solid #107C41' }}>
@@ -882,7 +854,6 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* PENDING STATUS CARD */}
             {(pendingDeposits.some(p => !p.processed) || pendingWithdrawals.some(p => !p.processed)) && (
               <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #FFD700', borderRadius: '8px', padding: '14px', fontSize: '12px', color: '#aaa' }}>
                 <span style={{ color: '#FFD700', fontWeight: 'bold' }}>⏳ PENDING APPROVALS</span>
@@ -902,9 +873,9 @@ useEffect(() => {
             <div>
               <h4 style={{ color: '#aaa', margin: '0 0 12px 0', fontSize: '13px', fontWeight: 'bold' }}>ACTIONS</h4>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                <button onClick={triggerDepositFlow} style={{ backgroundColor: isDarkMode ? '#111' : '#fff', border: isDarkMode ? '2px solid #00FF66' : '2px solid #107C41', color: isDarkMode ? '#00FF66' : '#107C41', padding: '18px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>💸 Deposit</button>
-                <button onClick={triggerWithdrawFlow} style={{ backgroundColor: isDarkMode ? '#111' : '#fff', border: '2px solid #ff4444', color: '#ff4444', padding: '18px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}>📥 Withdraw</button>
-                </div>
+                <button onClick={triggerDepositFlow} style={{ backgroundColor: isDarkMode ? '#111' : '#fff', border: isDarkMode ? '2px solid #00FF66' : '2px solid #107C41', color: isDarkMode ? '#00FF66' : '#107C41', padding: '18px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Deposit</button>
+                <button onClick={triggerWithdrawFlow} style={{ backgroundColor: isDarkMode ? '#111' : '#fff', border: '2px solid #ff4444', color: '#ff4444', padding: '18px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Withdraw</button>
+              </div>
             </div>
 
             <div>
@@ -915,17 +886,13 @@ useEffect(() => {
                 transactions.slice(0, 15).map((txn, i) => {
                   const { label, sign, color } = getTransactionMeta(txn);
                   return (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', borderRadius: '6px', marginBottom: '8px' }}>
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', borderRadius: '8px', marginBottom: '10px' }}>
                       <div>
-                        <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', color: isDarkMode ? '#fff' : '#212529' }}>
-                          {label}
-                        </span>
+                        <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', color: isDarkMode ? '#fff' : '#212529' }}>{label}</span>
                         <span style={{ fontSize: '10px', color: '#666' }}>{txn.id}</span>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', color }}>
-                          {sign} UGX {txn.amount.toLocaleString()}
-                        </span>
+                        <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', color }}>{sign} UGX {txn.amount.toLocaleString()}</span>
                         <span style={{ fontSize: '10px', color: '#666' }}>{txn.date}</span>
                       </div>
                     </div>
@@ -936,7 +903,6 @@ useEffect(() => {
           </div>
         )}
 
-        {/* ========== BUY TAB ========== */}
         {activeTab === 'buy' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <h3 style={{ color: isDarkMode ? '#00FF66' : '#107C41', margin: '0' }}>LEASE MACHINES</h3>
@@ -945,10 +911,10 @@ useEffect(() => {
               💼 Wallet: <strong style={{ color: '#00FF66' }}>UGX {walletBalance.toLocaleString()}</strong> (used for leasing machines)
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-              <button onClick={() => setSelectedClass('A')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'A' ? (isDarkMode ? '#00FF66' : '#107C41') : (isDarkMode ? '#111' : '#e9ecef'), color: selectedClass === 'A' ? (isDarkMode ? '#000' : '#fff') : '#888' }}>CLASS A</button>
-              <button onClick={() => setSelectedClass('B')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'B' ? '#00BCFF' : (isDarkMode ? '#111' : '#e9ecef'), color: selectedClass === 'B' ? '#000' : '#888' }}>CLASS B (200%)</button>
-              <button onClick={() => setSelectedClass('C')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'C' ? '#FFD700' : (isDarkMode ? '#111' : '#e9ecef'), color: selectedClass === 'C' ? '#000' : '#888' }}>CLASS C (300%)</button>
-              <button onClick={() => setSelectedClass('D')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'D' ? '#FF1493' : (isDarkMode ? '#111' : '#e9ecef'), color: selectedClass === 'D' ? '#fff' : '#888' }}>CLASS D (100D)</button>
+              <button onClick={() => setSelectedClass('A')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'A' ? '#00FF66' : '#1c1c1c', color: selectedClass === 'A' ? '#000' : '#fff' }}>A</button>
+              <button onClick={() => setSelectedClass('B')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'B' ? '#00BCFF' : '#1c1c1c', color: selectedClass === 'B' ? '#000' : '#fff' }}>B</button>
+              <button onClick={() => setSelectedClass('C')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'C' ? '#FFD700' : '#1c1c1c', color: selectedClass === 'C' ? '#000' : '#fff' }}>C</button>
+              <button onClick={() => setSelectedClass('D')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'D' ? '#ff4444' : '#1c1c1c', color: '#fff' }}>D</button>
             </div>
             {powerbankCatalog[selectedClass].map((product) => {
               const totalReturn = getProductTotalReturn(product);
@@ -956,7 +922,7 @@ useEffect(() => {
               const hasActive = hasActiveMachine(product.id);
               const canBuy = !hasActive && walletBalance >= product.price;
               return (
-                <div key={product.id} style={{ display: 'flex', backgroundColor: isDarkMode ? '#111' : '#fff', borderRadius: '10px', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', overflow: 'hidden', height: '135px' }}>
+                <div key={product.id} style={{ display: 'flex', backgroundColor: isDarkMode ? '#111' : '#fff', borderRadius: '10px', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', overflow: 'hidden' }}>
                   <div style={{ width: '25%', backgroundColor: isDarkMode ? '#1a1a1a' : '#f1f3f5', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px' }}>
                     <PowerbankGraphic accentColor={product.imgColor} />
                   </div>
@@ -991,7 +957,6 @@ useEffect(() => {
           </div>
         )}
 
-        {/* ========== ACTIVITY TAB ========== */}
         {activeTab === 'activity' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ borderBottom: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', paddingBottom: '10px' }}>
@@ -1027,7 +992,7 @@ useEffect(() => {
                     </div>
                     {!mach.claimed && (
                       <div style={{ width: '100%', height: '6px', backgroundColor: '#222', borderRadius: '3px', marginBottom: '10px', overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.min(countdown.progress || 0, 100)}%`, height: '100%', backgroundColor: countdown.completed ? '#FFD700' : classColor, borderRadius: '3px', transition: 'width 1s linear' }} />
+                        <div style={{ width: `${Math.min(countdown.progress || 0, 100)}%`, height: '100%', backgroundColor: countdown.completed ? '#FFD700' : classColor, borderRadius: '3px', transition: 'width 0.3s ease' }} />
                       </div>
                     )}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', fontSize: '12px' }}>
@@ -1036,7 +1001,7 @@ useEffect(() => {
                       <div><span style={{ color: '#666' }}>→ Balance</span><div style={{ color: '#00BCFF', fontWeight: 'bold' }}>UGX {totalReturn.toLocaleString()}</div></div>
                     </div>
                     {!mach.claimed && (
-                      <div style={{ marginTop: '10px', padding: '8px 12px', backgroundColor: isDarkMode ? '#111' : '#f1f3f5', borderRadius: '6px', textAlign: 'center', fontFamily: 'monospace', fontSize: '16px', fontWeight: 'bold', color: countdown.completed ? '#FFD700' : classColor }}>
+                      <div style={{ marginTop: '10px', padding: '8px 12px', backgroundColor: isDarkMode ? '#111' : '#f1f3f5', borderRadius: '6px', textAlign: 'center', fontFamily: 'monospace', fontSize: '12px', color: isDarkMode ? '#fff' : '#212529' }}>
                         {countdown.display}
                       </div>
                     )}
@@ -1047,10 +1012,9 @@ useEffect(() => {
           </div>
         )}
 
-        {/* ========== REWARDS TAB ========== */}
         {activeTab === 'rewards' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.72)', backdropFilter: 'blur(2px)', borderRadius: '12px', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.72)', backdropFilter: 'blur(2px)', borderRadius: '12px', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ color: '#00FF66', fontSize: '28px', fontWeight: 'bold' }}>Coming Soon</span>
               <span style={{ color: '#ddd', fontSize: '12px', textAlign: 'center' }}>Referral rewards will be enabled soon.</span>
             </div>
@@ -1058,16 +1022,16 @@ useEffect(() => {
               <h3 style={{ color: isDarkMode ? '#00FF66' : '#107C41', margin: 0 }}>REFERRAL REWARDS</h3>
               <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: '12px' }}>Invite friends — rewards go to Wallet</p>
             </div>
-            <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', padding: '20px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', padding: '20px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <span style={{ fontSize: '12px', color: '#888', fontWeight: 'bold' }}>YOUR REFERRALS</span>
                 <div style={{ fontSize: '32px', fontWeight: 'bold', color: isDarkMode ? '#fff' : '#212529', marginTop: '5px' }}>{referrals}</div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <input type="text" readOnly value={referralLink} style={{ padding: '12px', backgroundColor: isDarkMode ? '#111' : '#f1f3f5', color: isDarkMode ? '#aaa' : '#333', border: '1px solid #222', borderRadius: '6px', fontSize: '12px' }} />
+                <input type="text" readOnly value={referralLink} style={{ padding: '12px', backgroundColor: isDarkMode ? '#111' : '#f1f3f5', color: isDarkMode ? '#aaa' : '#333', border: '1px solid #222', borderRadius: '6px', width: '100%', boxSizing: 'border-box' }} />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <button onClick={copyToClipboard} style={{ backgroundColor: isDarkMode ? '#111' : '#e9ecef', color: isDarkMode ? '#00FF66' : '#107C41', border: '1px solid #222', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>📋 Copy</button>
-                  <button onClick={shareOnWhatsApp} style={{ backgroundColor: '#25D366', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>💬 WhatsApp</button>
+                  <button onClick={copyToClipboard} style={{ backgroundColor: isDarkMode ? '#111' : '#e9ecef', color: isDarkMode ? '#00FF66' : '#107C41', border: '1px solid #222', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Copy</button>
+                  <button onClick={shareOnWhatsApp} style={{ backgroundColor: '#25D366', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>WhatsApp</button>
                 </div>
               </div>
             </div>
@@ -1077,17 +1041,17 @@ useEffect(() => {
                 const isClaimed = claimedList.includes(roadmap.target);
                 const canClaim = referrals >= roadmap.target && !isClaimed;
                 return (
-                  <div key={roadmap.target} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', backgroundColor: isDarkMode ? '#111' : '#fff', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', borderRadius: '8px' }}>
+                  <div key={roadmap.target} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', backgroundColor: isDarkMode ? '#111' : '#fff', border: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', borderRadius: '8px', alignItems: 'center' }}>
                     <div style={{ width: '70%' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '11px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', backgroundColor: roadmap.type === 'Cash' ? '#2563eb' : '#db2777', color: '#fff' }}>{roadmap.type}</span>
                         <strong style={{ color: isDarkMode ? '#fff' : '#212529', fontSize: '14px' }}>{roadmap.reward}</strong>
                       </div>
                       <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '11px' }}>{roadmap.desc}</p>
-                      <span style={{ fontSize: '11px', color: referrals >= roadmap.target ? '#00FF66' : '#ff4444', fontWeight: 'bold', display: 'block', marginTop: '4px' }}>{referrals}/{roadmap.target} invites</span>
+                      <span style={{ fontSize: '11px', color: referrals >= roadmap.target ? '#00FF66' : '#ff4444', fontWeight: 'bold', display: 'block', marginTop: '4px' }}>{referrals}/{roadmap.target} referrals</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <button disabled={!canClaim} onClick={() => handleClaimReward(roadmap.target)} style={{ padding: '8px 12px', borderRadius: '4px', border: 'none', fontSize: '11px', fontWeight: 'bold', cursor: canClaim ? 'pointer' : 'not-allowed', backgroundColor: isClaimed ? '#222' : canClaim ? '#00FF66' : '#333', color: isClaimed ? '#555' : canClaim ? '#000' : '#888' }}>
+                      <button disabled={!canClaim} onClick={() => handleClaimReward(roadmap.target)} style={{ padding: '8px 12px', borderRadius: '4px', border: 'none', fontSize: '11px', fontWeight: 'bold', backgroundColor: isClaimed ? '#2e7d32' : canClaim ? '#00FF66' : '#333', color: isClaimed || canClaim ? '#000' : '#666', cursor: canClaim ? 'pointer' : 'not-allowed' }}>
                         {isClaimed ? '✓ Done' : canClaim ? 'Claim' : 'Locked'}
                       </button>
                     </div>
@@ -1099,27 +1063,25 @@ useEffect(() => {
         )}
       </div>
 
-      {/* ========== BOTTOM NAV ========== */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '70px', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderTop: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', alignItems: 'center', justifyItems: 'center', zIndex: 4000 }}>
-        <button onClick={() => setActiveTab('home')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer', color: activeTab === 'home' ? (isDarkMode ? '#00FF66' : '#107C41') : '#666' }}>
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '70px', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderTop: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', zIndex: 1000 }}>
+        <button onClick={() => setActiveTab('home')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', color: activeTab === 'home' ? '#00FF66' : '#888' }}>
           <span style={{ fontSize: '20px' }}>🏠</span>
           <span style={{ fontSize: '11px', fontWeight: 'bold' }}>Home</span>
         </button>
-        <button onClick={() => setActiveTab('buy')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer', color: activeTab === 'buy' ? (isDarkMode ? '#00FF66' : '#107C41') : '#666' }}>
+        <button onClick={() => setActiveTab('buy')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', color: activeTab === 'buy' ? '#00FF66' : '#888' }}>
           <span style={{ fontSize: '20px' }}>🛒</span>
           <span style={{ fontSize: '11px', fontWeight: 'bold' }}>Lease</span>
         </button>
-        <button onClick={() => setActiveTab('activity')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer', color: activeTab === 'activity' ? (isDarkMode ? '#00FF66' : '#107C41') : '#666' }}>
+        <button onClick={() => setActiveTab('activity')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', color: activeTab === 'activity' ? '#00FF66' : '#888' }}>
           <span style={{ fontSize: '20px' }}>⚡</span>
           <span style={{ fontSize: '11px', fontWeight: 'bold' }}>Activity</span>
         </button>
-        <button onClick={() => setActiveTab('rewards')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', cursor: 'pointer', color: activeTab === 'rewards' ? (isDarkMode ? '#00FF66' : '#107C41') : '#666' }}>
+        <button onClick={() => setActiveTab('rewards')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', cursor: 'pointer', color: activeTab === 'rewards' ? '#00FF66' : '#888' }}>
           <span style={{ fontSize: '20px' }}>🎁</span>
           <span style={{ fontSize: '11px', fontWeight: 'bold' }}>Rewards</span>
         </button>
       </div>
 
-      {/* CSS for fadeIn animation */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-10px); }
