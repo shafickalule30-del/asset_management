@@ -404,7 +404,7 @@ function Home() {
   const handleWithdrawAmountChange = (e) => {
     const value = e.target.value;
     setWithdrawAmount(value);
-    setReceiveAmount(Number(value) > 0 ? Number(value) * 0.9 : 0);
+    setReceiveAmount(Number(value) > 0 ? Number(value) * 0.92 : 0);
   };
 
   const handleWithdrawSubmit = async (e) => {
@@ -415,16 +415,16 @@ function Home() {
     if (!withdrawPhone.trim()) return showToast('❌ Enter your mobile money phone number.', 'error');
 
     try {
-      const res = await fetch(`${ADMIN_API}/api/submit-withdrawal`, {
+      const res = await fetch(`${ADMIN_API}/api/account/withdraw`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: user.id,
+          userId: user.id,
           username: user.username || 'Anonymous',
           email: user.email || '',
           amount: amt,
           receive_amount: receiveAmount,
-          fee: amt * 0.1,
+          fee: amt * 0.08,
           phone: withdrawPhone.trim(),
           network: withdrawNetwork,
           date: new Date().toISOString()
@@ -643,7 +643,7 @@ function Home() {
     return (
       <div style={{ backgroundColor: '#000000', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
         <style>{`@keyframes spinGoldCoin { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }`}</style>
-        <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#00FF66', border: '5px solid #00AA44', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 0 20px rgba(0,255,102,0.5)', animation: 'spinGoldCoin 0.8s linear infinite' }}>
+        <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#00FF66', border: '5px solid #00AA44', display: 'flex', justifyContent: 'center', alignItems: 'center', animation: 'spinGoldCoin 0.9s linear infinite' }}>
           <span style={{ fontSize: '32px' }}>🪙</span>
         </div>
         <h3 style={{ color: '#00FF66', marginTop: '20px', fontFamily: 'sans-serif', letterSpacing: '1px', fontSize: '14px' }}>PROCESSING...</h3>
@@ -655,7 +655,7 @@ function Home() {
     return (
       <div style={{ backgroundColor: '#000000', minHeight: '100vh', color: '#ffffff', fontFamily: 'sans-serif', padding: '20px', boxSizing: 'border-box' }}>
         <ToastBar />
-        <button onClick={() => setCurrentView('dashboard')} style={{ backgroundColor: '#111', border: '1px solid #333', color: '#00FF66', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', marginBottom: '15px' }}>Back</button>
+        <button onClick={() => setCurrentView('dashboard')} style={{ backgroundColor: '#111', border: '1px solid #333', color: '#00FF66', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', marginBottom: '20px' }}>Back</button>
         <h2 style={{ color: '#00FF66', marginTop: 0 }}>DEPOSIT FUNDS</h2>
         <div style={{ backgroundColor: '#111', padding: '16px', borderRadius: '10px', border: '2px solid #00FF66', marginBottom: '20px' }}>
           <span style={{ fontSize: '11px', color: '#00FF66', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>SEND MONEY TO</span>
@@ -668,8 +668,8 @@ function Home() {
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
-          <button onClick={() => setDepositNetwork('MTN')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: depositNetwork === 'MTN' ? '#00FF66' : '#1c1c1c', color: depositNetwork === 'MTN' ? '#000' : '#fff' }}>MTN Mobile Money</button>
-          <button onClick={() => setDepositNetwork('Airtel')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: depositNetwork === 'Airtel' ? '#FFD700' : '#1c1c1c', color: depositNetwork === 'Airtel' ? '#000' : '#fff' }}>Airtel Money</button>
+          <button onClick={() => setDepositNetwork('MTN')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: depositNetwork === 'MTN' ? '#00FF66' : '#1c1c1c', color: depositNetwork === 'MTN' ? '#000' : '#fff' }}>MTN</button>
+          <button onClick={() => setDepositNetwork('Airtel')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: depositNetwork === 'Airtel' ? '#FFD700' : '#1c1c1c', color: depositNetwork === 'Airtel' ? '#000' : '#fff' }}>Airtel</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div>
@@ -683,7 +683,7 @@ function Home() {
         </div>
 
         {showPaymentModal && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 5000, padding: '20px' }}>
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 5000 }}>
             <div style={{ backgroundColor: '#111', border: '2px solid #00FF66', borderRadius: '12px', width: '100%', maxWidth: '420px', padding: '25px', boxSizing: 'border-box' }}>
               <h3 style={{ margin: '0 0 10px 0', color: '#00FF66', fontSize: '18px' }}>ENTER PAYMENT ID</h3>
               <p style={{ color: '#ccc', fontSize: '13px', margin: '0 0 20px 0' }}>
@@ -717,7 +717,7 @@ function Home() {
         <h2 style={{ color: '#ff4444', marginTop: 0 }}>WITHDRAW FUNDS</h2>
         <div style={{ backgroundColor: '#0a0a0a', border: '2px solid #00BCFF', padding: '15px', borderRadius: '8px', marginBottom: '15px', fontSize: '13px', color: '#aaa' }}>
           ⚖️ Balance Account: <strong style={{ color: '#00BCFF' }}>UGX {balanceAccount.toLocaleString()}</strong><br />
-          <span style={{ fontSize: '11px' }}>10% fee applies. Admin approval required.</span>
+          <span style={{ fontSize: '11px' }}>8% fee applies. Admin approval required.</span>
         </div>
         <form onSubmit={handleWithdrawSubmit} style={{ backgroundColor: '#0a0a0a', border: '2px solid #ff4444', padding: '20px', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div>
@@ -725,7 +725,7 @@ function Home() {
             <input type="number" placeholder="e.g. 20000" required value={withdrawAmount} onChange={handleWithdrawAmountChange} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', borderRadius: '8px', border: '1px solid #333', backgroundColor: '#111', color: '#fff' }} />
           </div>
           <div style={{ backgroundColor: '#111', padding: '15px', borderRadius: '6px', border: '1px solid #222' }}>
-            <span style={{ fontSize: '12px', color: '#ff4444', fontWeight: 'bold' }}>YOU RECEIVE (after 10% fee):</span>
+            <span style={{ fontSize: '12px', color: '#ff4444', fontWeight: 'bold' }}>YOU RECEIVE (after 8% fee):</span>
             <div style={{ fontSize: '24px', color: '#00FF66', fontWeight: 'bold', marginTop: '6px' }}>UGX {receiveAmount.toLocaleString()}</div>
           </div>
           <div>
@@ -782,7 +782,7 @@ function Home() {
       {isMenuOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 6000, display: 'flex' }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onClick={() => setIsMenuOpen(false)} />
-          <div style={{ position: 'relative', width: '280px', height: '100%', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderRight: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '20px', boxSizing: 'border-box' }}>
+          <div style={{ position: 'relative', width: '280px', height: '100%', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderRight: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '20px 15px', boxSizing: 'border-box' }}>
             <button onClick={() => setIsMenuOpen(false)} style={{ position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', color: '#888', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>✕</button>
             <h3 style={{ margin: '15px 0 5px 0', color: isDarkMode ? '#00FF66' : '#107C41', borderBottom: '1px solid #222', paddingBottom: '10px', fontSize: '18px' }}>Menu</h3>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '18px', fontSize: '14px', fontWeight: '500' }}>
@@ -797,17 +797,19 @@ function Home() {
       )}
 
       {showConfirmModal && selectedProductToBuy && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 5000, padding: '20px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 5000 }}>
           <div style={{ backgroundColor: '#0a0a0a', border: '2px solid #00FF66', borderRadius: '12px', width: '100%', maxWidth: '360px', padding: '25px', boxSizing: 'border-box' }}>
             <h3 style={{ margin: '0 0 10px 0', color: '#00FF66', fontSize: '18px' }}>CONFIRM PURCHASE</h3>
             <p style={{ color: '#ccc', fontSize: '14px', marginBottom: '20px' }}>
               Lease <strong>{selectedProductToBuy.name}</strong> for <strong>UGX {selectedProductToBuy.price.toLocaleString()}</strong> from Wallet?
             </p>
             <div style={{ backgroundColor: '#111', padding: '12px', borderRadius: '6px', marginBottom: '15px', borderLeft: '4px solid', borderLeftColor: selectedProductToBuy.classTier === 'B' ? '#00BCFF' : '#00FF66' }}>
-              Class {selectedProductToBuy.classTier} · {selectedProductToBuy.days} days
-              <div style={{ marginTop: '8px', color: '#ddd' }}>
-                {selectedProductToBuy.classTier === 'B' && <>200% Profit → <strong style={{ color: '#00BCFF' }}>UGX {getProductTotalReturn(selectedProductToBuy).toLocaleString()}</strong></>}
-                {selectedProductToBuy.classTier === 'A' && <>Projected return → <strong style={{ color: '#00FF66' }}>UGX {getProductTotalReturn(selectedProductToBuy).toLocaleString()}</strong></>}
+              <div style={{ color: '#aaa', fontSize: '12px' }}>
+                Class {selectedProductToBuy.classTier} · {selectedProductToBuy.days} days
+                <div style={{ marginTop: '8px', color: '#ddd' }}>
+                  {selectedProductToBuy.classTier === 'B' && <>200% Profit → <strong style={{ color: '#00BCFF' }}>UGX {getProductTotalReturn(selectedProductToBuy).toLocaleString()}</strong></>}
+                  {selectedProductToBuy.classTier === 'A' && <>Projected return → <strong style={{ color: '#00FF66' }}>UGX {getProductTotalReturn(selectedProductToBuy).toLocaleString()}</strong></>}
+                </div>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -821,7 +823,7 @@ function Home() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px', paddingBottom: '90px' }}>
         {activeTab === 'home' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-            <div style={{ background: isDarkMode ? 'linear-gradient(135deg, #111, #051a0e)' : 'linear-gradient(135deg, #fff, #e8f5e9)', padding: '25px', borderRadius: '12px', border: isDarkMode ? '1px solid #00FF66' : '1px solid #107C41' }}>
+            <div style={{ background: isDarkMode ? 'linear-gradient(135deg, #111, #051a0e)' : 'linear-gradient(135deg, #fff, #e8f5e9)', padding: '25px', borderRadius: '12px', border: isDarkMode ? '1px solid #00FF66' : '1px solid #107C41', boxShadow: '0 10px 20px rgba(0,0,0,0.08)' }}>
               <p style={{ margin: 0, color: '#aaa', fontSize: '14px', fontWeight: 'bold' }}>TOTAL PORTFOLIO</p>
               <h1 style={{ margin: '12px 0 0 0', color: isDarkMode ? '#fff' : '#212529', fontSize: '38px', fontWeight: 'bold' }}>UGX {(walletBalance + balanceAccount).toLocaleString()}</h1>
             </div>
@@ -936,7 +938,7 @@ function Home() {
               <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: '12px' }}>Live countdown · Profits go to Balance Account</p>
             </div>
             {activeMachines.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px 20px', backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', borderRadius: '8px', border: isDarkMode ? '1px dashed #222' : '1px dashed #ccc' }}>
+              <div style={{ textAlign: 'center', padding: '40px 20px', backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', borderRadius: '8px', border: isDarkMode ? '1px dashed #222' : '1px dashed #dee2e6' }}>
                 <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>No machines yet.</p>
                 <p style={{ margin: '8px 0 0 0', color: '#888', fontSize: '12px' }}>Go to Lease tab to buy one.</p>
               </div>
@@ -947,7 +949,7 @@ function Home() {
                 const totalReturn = mach.totalReturn || calculateTotalReturn(mach.price, mach.classTier);
                 const classColor = mach.classTier === 'B' ? '#00BCFF' : '#00FF66';
                 return (
-                  <div key={idx} style={{ padding: '16px', backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: countdown.completed && !mach.claimed ? '2px solid #FFD700' : mach.claimed ? '1px solid #333' : isDarkMode ? '1px solid #111' : '1px solid #dee2e6', borderRadius: '10px', opacity: mach.claimed ? 0.6 : 1 }}>
+                  <div key={idx} style={{ padding: '16px', backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: countdown.completed && !mach.claimed ? '2px solid #FFD700' : mach.claimed ? '1px solid #333' : '1px solid #222', borderRadius: '10px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                       <div>
                         <span style={{ fontWeight: 'bold', fontSize: '14px', color: isDarkMode ? '#fff' : '#212529' }}>{mach.name}</span>
@@ -968,7 +970,7 @@ function Home() {
                       <div><span style={{ color: '#666' }}>→ Balance</span><div style={{ color: '#00BCFF', fontWeight: 'bold' }}>UGX {totalReturn.toLocaleString()}</div></div>
                     </div>
                     {!mach.claimed && (
-                      <div style={{ marginTop: '10px', padding: '8px 12px', backgroundColor: isDarkMode ? '#111' : '#f1f3f5', borderRadius: '6px', textAlign: 'center', fontFamily: 'monospace', fontSize: '12px', color: isDarkMode ? '#fff' : '#212529' }}>
+                      <div style={{ marginTop: '10px', padding: '8px 12px', backgroundColor: isDarkMode ? '#111' : '#f1f3f5', borderRadius: '6px', textAlign: 'center', fontFamily: 'monospace', fontWeight: 'bold', color: countdown.completed ? '#FFD700' : '#00FF66' }}>
                         {countdown.display}
                       </div>
                     )}
@@ -981,7 +983,7 @@ function Home() {
 
         {activeTab === 'rewards' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.72)', backdropFilter: 'blur(2px)', borderRadius: '12px', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0, 0, 0, 0.72)', backdropFilter: 'blur(2px)', borderRadius: '12px', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '8px' }}>
               <span style={{ color: '#00FF66', fontSize: '28px', fontWeight: 'bold' }}>Coming Soon</span>
               <span style={{ color: '#ddd', fontSize: '12px', textAlign: 'center' }}>Referral rewards will be enabled soon.</span>
             </div>
@@ -989,15 +991,15 @@ function Home() {
               <h3 style={{ color: isDarkMode ? '#00FF66' : '#107C41', margin: 0 }}>REFERRAL REWARDS</h3>
               <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: '12px' }}>Invite friends — rewards go to Wallet</p>
             </div>
-            <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', padding: '20px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', padding: '20px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div>
                 <span style={{ fontSize: '12px', color: '#888', fontWeight: 'bold' }}>YOUR REFERRALS</span>
                 <div style={{ fontSize: '32px', fontWeight: 'bold', color: isDarkMode ? '#fff' : '#212529', marginTop: '5px' }}>{referrals}</div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <input type="text" readOnly value={referralLink} style={{ padding: '12px', backgroundColor: isDarkMode ? '#111' : '#f1f3f5', color: isDarkMode ? '#aaa' : '#333', border: '1px solid #222', borderRadius: '6px', width: '100%', boxSizing: 'border-box' }} />
+                <input type="text" readOnly value={referralLink} style={{ padding: '12px', backgroundColor: isDarkMode ? '#111' : '#f1f3f5', color: isDarkMode ? '#aaa' : '#333', border: '1px solid #222', borderRadius: '6px' }} />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <button onClick={copyToClipboard} style={{ backgroundColor: isDarkMode ? '#111' : '#e9ecef', color: isDarkMode ? '#00FF66' : '#107C41', border: '1px solid #222', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Copy</button>
+                  <button onClick={copyToClipboard} style={{ backgroundColor: isDarkMode ? '#111' : '#e9ecef', color: isDarkMode ? '#00FF66' : '#107C41', border: '1px solid #222', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Copy Link</button>
                   <button onClick={shareOnWhatsApp} style={{ backgroundColor: '#25D366', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>WhatsApp</button>
                 </div>
               </div>
@@ -1008,7 +1010,7 @@ function Home() {
                 const isClaimed = claimedList.includes(roadmap.target);
                 const canClaim = referrals >= roadmap.target && !isClaimed;
                 return (
-                  <div key={roadmap.target} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', backgroundColor: isDarkMode ? '#111' : '#fff', border: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', borderRadius: '8px', alignItems: 'center' }}>
+                  <div key={roadmap.target} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', backgroundColor: isDarkMode ? '#111' : '#fff', border: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', borderRadius: '8px' }}>
                     <div style={{ width: '70%' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '11px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', backgroundColor: roadmap.type === 'Cash' ? '#2563eb' : '#db2777', color: '#fff' }}>{roadmap.type}</span>
@@ -1018,7 +1020,7 @@ function Home() {
                       <span style={{ fontSize: '11px', color: referrals >= roadmap.target ? '#00FF66' : '#ff4444', fontWeight: 'bold', display: 'block', marginTop: '4px' }}>{referrals}/{roadmap.target}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <button disabled={!canClaim} onClick={() => handleClaimReward(roadmap.target)} style={{ padding: '8px 12px', borderRadius: '4px', border: 'none', fontSize: '11px', fontWeight: 'bold', cursor: canClaim ? 'pointer' : 'not-allowed', backgroundColor: isClaimed ? '#2e7d32' : canClaim ? '#00FF66' : '#333', color: isClaimed ? '#fff' : canClaim ? '#000' : '#666' }}>
+                      <button disabled={!canClaim} onClick={() => handleClaimReward(roadmap.target)} style={{ padding: '8px 12px', borderRadius: '4px', border: 'none', fontSize: '11px', fontWeight: 'bold', cursor: canClaim ? 'pointer' : 'not-allowed', backgroundColor: isClaimed ? '#2a2a2a' : canClaim ? '#00FF66' : '#333', color: isClaimed ? '#999' : '#000' }}>
                         {isClaimed ? '✓ Done' : canClaim ? 'Claim' : 'Locked'}
                       </button>
                     </div>
@@ -1031,10 +1033,10 @@ function Home() {
       </div>
 
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '70px', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderTop: isDarkMode ? '1px solid #111' : '1px solid #dfe3e8', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', zIndex: 1000 }}>
-        <button onClick={() => setActiveTab('home')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: activeTab === 'home' ? '#00FF66' : '#888', cursor: 'pointer' }}><span style={{ fontSize: '20px' }}>🏠</span><span style={{ fontSize: '11px', fontWeight: 'bold' }}>Home</span></button>
-        <button onClick={() => setActiveTab('buy')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: activeTab === 'buy' ? '#00FF66' : '#888', cursor: 'pointer' }}><span style={{ fontSize: '20px' }}>🛒</span><span style={{ fontSize: '11px', fontWeight: 'bold' }}>Lease</span></button>
-        <button onClick={() => setActiveTab('activity')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: activeTab === 'activity' ? '#00FF66' : '#888', cursor: 'pointer' }}><span style={{ fontSize: '20px' }}>⚡</span><span style={{ fontSize: '11px', fontWeight: 'bold' }}>Activity</span></button>
-        <button onClick={() => setActiveTab('rewards')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: activeTab === 'rewards' ? '#00FF66' : '#888', cursor: 'pointer' }}><span style={{ fontSize: '20px' }}>🎁</span><span style={{ fontSize: '11px', fontWeight: 'bold' }}>Rewards</span></button>
+        <button onClick={() => setActiveTab('home')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: activeTab === 'home' ? '#00FF66' : '#888', fontWeight: 'bold' }}><span>🏠</span><span style={{ fontSize: '11px' }}>Home</span></button>
+        <button onClick={() => setActiveTab('buy')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: activeTab === 'buy' ? '#00FF66' : '#888', fontWeight: 'bold' }}><span>⚡</span><span style={{ fontSize: '11px' }}>Lease</span></button>
+        <button onClick={() => setActiveTab('activity')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: activeTab === 'activity' ? '#00FF66' : '#888', fontWeight: 'bold' }}><span>📊</span><span style={{ fontSize: '11px' }}>Activity</span></button>
+        <button onClick={() => setActiveTab('rewards')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: activeTab === 'rewards' ? '#00FF66' : '#888', fontWeight: 'bold' }}><span>🎁</span><span style={{ fontSize: '11px' }}>Rewards</span></button>
       </div>
 
       <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
