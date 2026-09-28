@@ -52,6 +52,7 @@ const transactionSchema = new mongoose.Schema({
   merchantAccountNumber: { type: String, default: null },
   merchantAccountName: { type: String, default: null },
   merchantAccountTimestamp: { type: Date, default: null },
+  type: { type: String, enum: ['deposit', 'withdrawal'], default: 'deposit' },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -127,7 +128,7 @@ app.post('/api/auth/register', async (req, res) => {
   } catch (error) { res.status(500).json({ message: "Server error saving user profile" }); }
 });
 
-// 2. LOGIN ROUTE
+// 2. LOGIN ROUTE - FIXED: Do not auto-credit deposits, just update machine days
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -224,7 +225,8 @@ app.post('/api/account/deposit', async (req, res) => {
       transactionId: transactionId || null,
       merchantAccountNumber: activeAccount.number,
       merchantAccountName: activeAccount.name,
-      merchantAccountTimestamp: new Date()
+      merchantAccountTimestamp: new Date(),
+      type: 'deposit'
     });
 
     await depositRequest.save();
@@ -254,10 +256,14 @@ app.put('/api/transactions/approve/:id', async (req, res) => {
       return res.status(400).json({ message: "Transaction statement processed or unlisted." });
     }
 
-    // Deposits should credit the wallet balance, not the account balance.
-    await User.findByIdAndUpdate(targetReceipt.userId, {
-      $inc: { walletBalance: targetReceipt.amount }
-    });
+    // Check transaction type: deposits credit wallet, withdrawals are approved
+    if (targetReceipt.type === 'deposit') {
+      // Deposits should credit the wallet balance, not the account balance.
+      await User.findByIdAndUpdate(targetReceipt.userId, {
+        $inc: { walletBalance: targetReceipt.amount }
+      });
+    }
+    // Withdrawals don't update balance here - they were already deducted when submitted
 
     targetReceipt.status = 'Approved';
     await targetReceipt.save();
@@ -304,24 +310,78 @@ app.put('/api/transactions/decline/:id', async (req, res) => {
   } catch (error) { res.status(500).json({ message: "Execution error during decline action." }); }
 });
 
-// 7. WITHDRAW ROUTE
+// 7. UPDATED WITHDRAW ROUTE - FIXED: Creates pending withdrawal request for admin verification
 app.post('/api/account/withdraw', async (req, res) => {
   try {
-    const { userId, amount } = req.body;
+    const { userId, amount, phone, network } = req.body;
     const amt = Number(amount);
+    
     const currentUser = await User.findById(userId);
+    if (!currentUser) return res.status(404).json({ message: "User not found" });
     if (currentUser.accountBalance < amt) return res.status(400).json({ message: "Insufficient funds" });
-    const updatedUser = await User.findByIdAndUpdate(userId, { $inc: { accountBalance: -amt } }, { new: true });
-    res.status(200).json({ walletBalance: updatedUser.walletBalance, accountBalance: updatedUser.accountBalance });
-  } catch (error) { res.status(500).json({ message: "Withdrawal processing error" }); }
+
+    // Create a withdrawal transaction record for admin verification
+    const withdrawalRequest = new Transaction({
+      userId: currentUser._id,
+      username: currentUser.username,
+      amount: amt,
+      status: 'Pending',
+      type: 'withdrawal',
+      transactionId: `WTH-${Date.now()}`,
+      merchantAccountNumber: phone || null,
+      merchantAccountName: network || null,
+      createdAt: new Date()
+    });
+
+    await withdrawalRequest.save();
+
+    // Deduct from account balance immediately (frozen until admin approval)
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $inc: { accountBalance: -amt } },
+      { new: true }
+    );
+
+    res.status(201).json({
+      message: "Withdrawal submitted for admin verification. Amount is frozen in your account.",
+      withdrawal_id: withdrawalRequest._id,
+      walletBalance: updatedUser.walletBalance,
+      accountBalance: updatedUser.accountBalance
+    });
+  } catch (error) {
+    console.error("Withdrawal error:", error);
+    res.status(500).json({ message: "Withdrawal processing error" });
+  }
 });
 
-// 8. RE-ENGINEERED PRODUCT PROCUREMENT
+// 7b. NEW ROUTE: Approve withdrawal and send to user
+app.put('/api/transactions/approve-withdrawal/:id', async (req, res) => {
+  try {
+    const withdrawalTxn = await Transaction.findById(req.params.id);
+    if (!withdrawalTxn || withdrawalTxn.status !== 'Pending' || withdrawalTxn.type !== 'withdrawal') {
+      return res.status(400).json({ message: "Withdrawal not found or already processed." });
+    }
+
+    withdrawalTxn.status = 'Approved';
+    await withdrawalTxn.save();
+
+    res.status(200).json({ message: "Withdrawal approved and sent to user." });
+  } catch (error) {
+    res.status(500).json({ message: "Error approving withdrawal." });
+  }
+});
+
+// 8. RE-ENGINEERED PRODUCT PROCUREMENT - Classes A & B only
 app.post('/api/account/buy', async (req, res) => {
   try {
     const { userId, productName, price, classTier, targetDays } = req.body;
     const cost = Number(price);
     const daysCount = Number(targetDays);
+
+    // FIXED: Only allow Class A and B
+    if (classTier !== 'A' && classTier !== 'B') {
+      return res.status(400).json({ message: "Only Class A and Class B are available." });
+    }
 
     const currentUser = await User.findById(userId);
     if (!currentUser) return res.status(404).json({ message: "User profile missing" });
@@ -393,7 +453,7 @@ app.post('/api/account/claim-reward', async (req, res) => {
   } catch (error) { res.status(500).json({ message: "Error processing affiliate distribution claim." }); }
 });
 
-// 9. SMS WEBHOOK ENDPOINT: Automated balance credit from SMS providers
+// 10. SMS WEBHOOK ENDPOINT: Automated balance credit from SMS providers
 app.post('/api/sms-webhook', async (req, res) => {
   try {
     // Extract sender and message with fallback options for varied payload formats
@@ -422,7 +482,8 @@ app.post('/api/sms-webhook', async (req, res) => {
     // Query Transactions collection for a 'Pending' document matching the exact extracted Amount
     const transaction = await Transaction.findOne({
       amount: amount,
-      status: 'Pending'
+      status: 'Pending',
+      type: 'deposit'
     });
 
     if (!transaction) {
