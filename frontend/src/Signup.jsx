@@ -8,6 +8,7 @@ function Signup() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(null);
 
   const navigate = useNavigate();
 
@@ -23,37 +24,68 @@ function Signup() {
     }
 
     try {
-      // 🚀 Points directly to your true live server at the correct /register route
-      const response = await fetch("https://asset-management-55t5.onrender.com/api/auth/register", {
+      const response = await fetch('https://asset-management-55t5.onrender.com/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, email, password }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
       });
 
       const responseText = await response.text();
       const data = responseText ? JSON.parse(responseText) : {};
 
       if (response.ok) {
-        alert("🎉 Account created successfully! Redirecting to Login...");
-        navigate('/login');
+        setSuccess({
+          title: 'Signup successful',
+          message: 'Your account has been created. Redirecting to the login screen.',
+          actionText: 'OK',
+          onAction: () => navigate('/login')
+        });
       } else {
-        setErrorMessage(data.message || "Registration failed.");
+        setErrorMessage(data.message || 'Registration failed.');
       }
     } catch (error) {
-      console.error("Signup error:", error);
-      setErrorMessage("Cannot reach the backend server. Please check your connection.");
+      console.error('Signup error:', error);
+      setErrorMessage('Cannot reach the backend server. Please check your connection.');
     } finally {
       setLoading(false);
     }
   };
 
+  const dismissSuccess = () => {
+    const nextAction = success?.onAction;
+    setSuccess(null);
+    if (nextAction) nextAction();
+  };
+
   return (
     <div style={{
-      backgroundColor: '#000000', minHeight: '100vh', display: 'flex', 
+      backgroundColor: '#000000', minHeight: '100vh', display: 'flex',
       justifyContent: 'center', alignItems: 'center', fontFamily: 'sans-serif', color: '#ffffff', padding: '20px'
     }}>
+      {success && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px'
+        }}>
+          <div style={{
+            width: '100%', maxWidth: '360px', background: 'linear-gradient(180deg, #111 0%, #0a0a0a 100%)', border: '2px solid #00FF66', borderRadius: '18px', padding: '26px 22px', boxShadow: '0 12px 42px rgba(0,255,102,0.25)', textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '34px', marginBottom: '10px' }}>🎉</div>
+            <div style={{ color: '#00FF66', fontSize: '12px', letterSpacing: '2px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '8px' }}>Success</div>
+            <h3 style={{ color: '#fff', margin: '0 0 12px 0', fontSize: '24px' }}>{success.title}</h3>
+            <p style={{ color: '#d4d4d4', margin: '0 0 22px 0', lineHeight: 1.5, fontSize: '14px' }}>{success.message}</p>
+            <button
+              type="button"
+              onClick={dismissSuccess}
+              style={{
+                width: '100%', border: 'none', borderRadius: '10px', background: 'linear-gradient(135deg, #00FF66 0%, #00d9ff 100%)', color: '#000', fontWeight: '800', fontSize: '16px', padding: '13px 16px', cursor: 'pointer'
+              }}
+            >
+              {success.actionText}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={{
         width: '100%', maxWidth: '400px', padding: '30px', borderRadius: '10px',
         border: '2px solid #00FF66', backgroundColor: '#111111', boxShadow: '0px 0px 15px rgba(0, 255, 102, 0.2)'
@@ -74,8 +106,8 @@ function Signup() {
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
               USERNAME
             </label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               required
               placeholder="e.g. operator1"
               value={username}
@@ -88,8 +120,8 @@ function Signup() {
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
               EMAIL ADDRESS
             </label>
-            <input 
-              type="email" 
+            <input
+              type="email"
               required
               placeholder="operator@domain.com"
               value={email}
@@ -102,8 +134,8 @@ function Signup() {
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
               ACCESS PASSWORD
             </label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               required
               placeholder="••••••••"
               value={password}
@@ -116,8 +148,8 @@ function Signup() {
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
               CONFIRM PASSWORD
             </label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               required
               placeholder="••••••••"
               value={confirmPassword}
@@ -126,11 +158,11 @@ function Signup() {
             />
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading}
-            style={{ 
-              width: '100%', backgroundColor: '#00FF66', color: '#000', border: 'none', 
+            style={{
+              width: '100%', backgroundColor: '#00FF66', color: '#000', border: 'none',
               padding: '14px', borderRadius: '6px', fontWeight: 'bold', cursor: loading ? 'default' : 'pointer', marginTop: '10px'
             }}
           >

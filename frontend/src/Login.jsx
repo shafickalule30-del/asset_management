@@ -10,7 +10,6 @@ const getApiBaseUrl = () => {
 };
 
 const API_BASE_URL = getApiBaseUrl();
-
 const getUserStateStorageKey = (userId) => `userState:${userId}`;
 
 const buildPersistedUser = (userData) => ({
@@ -30,6 +29,7 @@ function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(null);
   const navigate = useNavigate();
 
   const handleLoginSubmit = async (e) => {
@@ -62,22 +62,23 @@ function Login() {
         localStorage.setItem('user', JSON.stringify(persistedAdmin));
         localStorage.setItem(getUserStateStorageKey(persistedAdmin.id), JSON.stringify(persistedAdmin));
 
-        alert('🔑 Access Granted! Welcome to the Admin Panel.');
-        navigate('/admin-panel');
+        setSuccess({
+          title: 'Login successful',
+          message: 'Welcome to the Admin Panel.',
+          actionText: 'OK',
+          onAction: () => navigate('/admin-panel')
+        });
         return;
       }
 
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: normalizedEmail, password: normalizedPassword }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail, password: normalizedPassword })
       });
 
       const textData = await response.text();
       const data = textData ? JSON.parse(textData) : {};
-      console.log('Login API Raw Data:', data);
 
       if (response.status === 200) {
         const userPayload = data.user || data;
@@ -102,8 +103,12 @@ function Login() {
         localStorage.setItem('user', JSON.stringify(userData));
         localStorage.setItem(getUserStateStorageKey(userData.id), JSON.stringify(userData));
 
-        alert('🔑 Access Granted! Welcome to the Terminal Dashboard.');
-        navigate(userRole === 'admin' ? '/admin-panel' : '/dashboard');
+        setSuccess({
+          title: 'Login successful',
+          message: 'Welcome back to the Terminal Dashboard.',
+          actionText: 'OK',
+          onAction: () => navigate(userRole === 'admin' ? '/admin-panel' : '/dashboard')
+        });
       } else {
         setError(data.message || 'Authentication rejected.');
       }
@@ -115,16 +120,45 @@ function Login() {
     }
   };
 
+  const dismissSuccess = () => {
+    const nextAction = success?.onAction;
+    setSuccess(null);
+    if (nextAction) nextAction();
+  };
+
   return (
     <div style={{
       backgroundColor: '#000000', minHeight: '100vh', display: 'flex',
       justifyContent: 'center', alignItems: 'center', fontFamily: 'sans-serif', padding: '20px'
     }}>
+      {success && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px'
+        }}>
+          <div style={{
+            width: '100%', maxWidth: '360px', background: 'linear-gradient(180deg, #111 0%, #0a0a0a 100%)', border: '2px solid #00FF66', borderRadius: '18px', padding: '26px 22px', boxShadow: '0 12px 42px rgba(0,255,102,0.25)', textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '34px', marginBottom: '10px' }}>✅</div>
+            <div style={{ color: '#00FF66', fontSize: '12px', letterSpacing: '2px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '8px' }}>Success</div>
+            <h3 style={{ color: '#fff', margin: '0 0 12px 0', fontSize: '24px' }}>{success.title}</h3>
+            <p style={{ color: '#d4d4d4', margin: '0 0 22px 0', lineHeight: 1.5, fontSize: '14px' }}>{success.message}</p>
+            <button
+              type="button"
+              onClick={dismissSuccess}
+              style={{
+                width: '100%', border: 'none', borderRadius: '10px', background: 'linear-gradient(135deg, #00FF66 0%, #00d9ff 100%)', color: '#000', fontWeight: '800', fontSize: '16px', padding: '13px 16px', cursor: 'pointer'
+              }}
+            >
+              {success.actionText}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={{
         width: '100%', maxWidth: '400px', backgroundColor: '#0a0a0a',
         border: '2px solid #222', borderRadius: '12px', padding: '30px'
       }}>
-
         <div style={{ textAlign: 'center', marginBottom: '25px' }}>
           <h2 style={{ color: '#00FF66', margin: '0 0 8px 0', fontSize: '24px', fontWeight: 'bold' }}>
             TERMINAL LOGIN
@@ -190,40 +224,9 @@ function Login() {
             Register here
           </Link>
         </div>
-
       </div>
     </div>
   );
 }
 
 export default Login;
-
-/* Temporary Node script: save below as checkUser.js and run with `node checkUser.js`
-
-const { MongoClient } = require('mongodb');
-
-const uri = process.env.MONGO_URI || '<YOUR_MONGO_URI_HERE>';
-
-(async () => {
-  if (!uri || uri.includes('<YOUR_MONGO_URI_HERE>')) {
-    console.error('Please set MONGO_URI env var or replace <YOUR_MONGO_URI_HERE>');
-    process.exit(1);
-  }
-
-  const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-  try {
-    await client.connect();
-    const db = client.db(); // uses DB from URI
-    const users = db.collection('users');
-    const doc = await users.findOne({ email: 'shag@gmail.com' }, { projection: { balance: 1, activeMachines: 1 } });
-    if (!doc) return console.log('User not found');
-    console.log('balance:', doc.balance);
-    console.log('activeMachines:', Array.isArray(doc.activeMachines) ? doc.activeMachines : doc.activeMachines);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    await client.close();
-  }
-})();
-
-*/

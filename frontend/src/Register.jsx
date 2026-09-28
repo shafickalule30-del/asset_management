@@ -6,9 +6,9 @@ function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(null);
   const navigate = useNavigate();
 
   const handleRegisterSubmit = async (e) => {
@@ -23,26 +23,22 @@ function Register() {
     }
 
     try {
-      // 🚀 Hits your live backend server at the correct /register endpoint
       const response = await fetch('https://asset-management-55t5.onrender.com/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username,
-          email,
-          password
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
       });
 
-      // Defensive layout parsing to keep UI stable if backend responds unexpectedly
       const textData = await response.text();
       const data = textData ? JSON.parse(textData) : {};
 
       if (response.ok) {
-        alert('🎉 Account Created Successfully! Directing to System Login...');
-        navigate('/login'); 
+        setSuccess({
+          title: 'Signup successful',
+          message: 'Your account has been created. Redirecting to the login screen.',
+          actionText: 'OK',
+          onAction: () => navigate('/login')
+        });
       } else {
         setError(data.message || 'Registration failed processing profile.');
       }
@@ -54,17 +50,46 @@ function Register() {
     }
   };
 
+  const dismissSuccess = () => {
+    const nextAction = success?.onAction;
+    setSuccess(null);
+    if (nextAction) nextAction();
+  };
+
   return (
-    <div style={{ 
-      backgroundColor: '#000000', minHeight: '100vh', display: 'flex', 
+    <div style={{
+      backgroundColor: '#000000', minHeight: '100vh', display: 'flex',
       justifyContent: 'center', alignItems: 'center', fontFamily: 'sans-serif', padding: '20px'
     }}>
-      <div style={{ 
-        width: '100%', maxWidth: '400px', backgroundColor: '#0a0a0a', 
+      {success && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px'
+        }}>
+          <div style={{
+            width: '100%', maxWidth: '360px', background: 'linear-gradient(180deg, #111 0%, #0a0a0a 100%)', border: '2px solid #00FF66', borderRadius: '18px', padding: '26px 22px', boxShadow: '0 12px 42px rgba(0,255,102,0.25)', textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '34px', marginBottom: '10px' }}>🎉</div>
+            <div style={{ color: '#00FF66', fontSize: '12px', letterSpacing: '2px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '8px' }}>Success</div>
+            <h3 style={{ color: '#fff', margin: '0 0 12px 0', fontSize: '24px' }}>{success.title}</h3>
+            <p style={{ color: '#d4d4d4', margin: '0 0 22px 0', lineHeight: 1.5, fontSize: '14px' }}>{success.message}</p>
+            <button
+              type="button"
+              onClick={dismissSuccess}
+              style={{
+                width: '100%', border: 'none', borderRadius: '10px', background: 'linear-gradient(135deg, #00FF66 0%, #00d9ff 100%)', color: '#000', fontWeight: '800', fontSize: '16px', padding: '13px 16px', cursor: 'pointer'
+              }}
+            >
+              {success.actionText}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div style={{
+        width: '100%', maxWidth: '400px', backgroundColor: '#0a0a0a',
         border: '2px solid #00FF66', borderRadius: '12px', padding: '30px',
         boxShadow: '0px 0px 15px rgba(0, 255, 102, 0.2)'
       }}>
-        
         <div style={{ textAlign: 'center', marginBottom: '25px' }}>
           <h2 style={{ color: '#00FF66', margin: '0 0 8px 0', fontSize: '24px', fontWeight: 'bold' }}>
             CREATE TERMINAL
@@ -75,8 +100,8 @@ function Register() {
         </div>
 
         {error && (
-          <div style={{ 
-            backgroundColor: 'rgba(255, 68, 68, 0.1)', border: '1px solid #ff4444', 
+          <div style={{
+            backgroundColor: 'rgba(255, 68, 68, 0.1)', border: '1px solid #ff4444',
             borderRadius: '6px', padding: '10px', color: '#ff4444', fontSize: '13px', marginBottom: '20px', textAlign: 'center'
           }}>
             {error}
@@ -88,8 +113,8 @@ function Register() {
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
               USERNAME
             </label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               required
               placeholder="e.g. operator1"
               value={username}
@@ -102,8 +127,8 @@ function Register() {
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
               EMAIL ADDRESS
             </label>
-            <input 
-              type="email" 
+            <input
+              type="email"
               required
               placeholder="operator@domain.com"
               value={email}
@@ -116,8 +141,8 @@ function Register() {
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
               ACCESS PASSWORD
             </label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               required
               placeholder="••••••••"
               value={password}
@@ -130,8 +155,8 @@ function Register() {
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
               CONFIRM PASSWORD
             </label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               required
               placeholder="••••••••"
               value={confirmPassword}
@@ -140,11 +165,11 @@ function Register() {
             />
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading}
-            style={{ 
-              width: '100%', backgroundColor: '#00FF66', color: '#000', border: 'none', 
+            style={{
+              width: '100%', backgroundColor: '#00FF66', color: '#000', border: 'none',
               padding: '14px', borderRadius: '6px', fontWeight: 'bold', cursor: loading ? 'default' : 'pointer', marginTop: '10px'
             }}
           >
@@ -158,7 +183,6 @@ function Register() {
             Login Here
           </Link>
         </div>
-
       </div>
     </div>
   );

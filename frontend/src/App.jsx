@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './Login';
 import Register from './Register';
 import Home from './Home';
@@ -14,9 +14,6 @@ const getStoredUser = () => {
   }
 };
 
-// =========================================================
-// 1. PROTECTED ROUTE CONTROLLER
-// =========================================================
 const ProtectedRoute = ({ children, requiredRole = null }) => {
   const user = getStoredUser();
 
@@ -54,18 +51,13 @@ const RootRedirect = () => {
   return <Navigate to={redirectPath} replace />;
 };
 
-// =========================================================
-// 2. MAIN ROUTING APPLICATION
-// =========================================================
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Protected Routes */}
         <Route
           path="/dashboard"
           element={
@@ -91,10 +83,7 @@ function App() {
           }
         />
 
-        {/* Root — redirect based on login status */}
         <Route path="/" element={<RootRedirect />} />
-
-        {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
