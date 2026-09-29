@@ -5,7 +5,7 @@ const cors = require('cors');
 const app = express();
 
 app.use(cors({
-  origin: true, // Allows your live frontend environment to connect securely
+  origin: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
@@ -20,13 +20,14 @@ mongoose.connect(MONGO_URI)
   .catch((err) => console.log("❌ Database connection error:", err));
 
 // ==========================================
-// 📝 DATA SCHEMAS (Updated with Transactions)
+// 📝 DATA SCHEMAS (Updated for phone auth)
 // ==========================================
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
+  phone: { type: String, required: true, unique: true },
+  email: { type: String, default: '' },
   password: { type: String, required: true },
-  walletBalance: { type: Number, default: 0.0 },      // For leasing machines
+  walletBalance: { type: Number, default: 0.0 },
   accountBalance: { type: Number, default: 0.0 },
   referrals: { type: Number, default: 0 },
   claimedMilestones: { type: [Number], default: [] },
@@ -42,7 +43,7 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
-// 💰 NEW: Secure ledger collection schema for tracking deposit validation states
+// 💰 Secure ledger collection schema for tracking deposit validation states
 const transactionSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   username: { type: String, required: true },
@@ -111,37 +112,48 @@ function getActiveDepositAccount(timestamp = new Date()) {
 // 🚀 API PIPELINES
 // ==========================================
 
-// 1. SIGN UP ROUTE
+// 1. SIGN UP ROUTE - Phone-based with referral support
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { username, email, password, referrerId } = req.body;
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ message: "Email is already registered!" });
+    const { username, phone, password, referrerId } = req.body;
+    
+    if (!username || !phone || !password) {
+      return res.status(400).json({ message: "Username, phone, and password are required." });
+    }
 
-    const newUser = new User({ username, email, password, activeMachines: [] });
+    const existingUser = await User.findOne({ phone });
+    if (existingUser) return res.status(400).json({ message: "This phone number is already registered!" });
+
+    const newUser = new User({ username, phone, password, activeMachines: [] });
     await newUser.save();
 
+    // Increment referrer's referrals if referrerId is valid
     if (referrerId && mongoose.Types.ObjectId.isValid(referrerId)) {
       await User.findByIdAndUpdate(referrerId, { $inc: { referrals: 1 } });
     }
+    
     res.status(201).json({ message: "User registered successfully!" });
-  } catch (error) { res.status(500).json({ message: "Server error saving user profile" }); }
+  } catch (error) {
+    res.status(500).json({ message: "Server error saving user profile" });
+  }
 });
 
-// 2. LOGIN ROUTE - FIXED: Do not auto-credit deposits, just update machine days
+// 2. LOGIN ROUTE - Phone-based authentication
 app.post('/api/auth/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const normalizedEmail = (email || '').trim().toLowerCase();
+    const { phone, password } = req.body;
+    const normalizedPhone = (phone || '').trim();
     const normalizedPassword = (password || '').trim();
 
-    if (normalizedEmail === 'shag@gmail.com' && normalizedPassword === '123456') {
-      let adminUser = await User.findOne({ email: normalizedEmail });
+    // Admin access
+    if (normalizedPhone === '0740000000' && normalizedPassword === '123456') {
+      let adminUser = await User.findOne({ phone: normalizedPhone });
       if (!adminUser) {
         adminUser = await User.create({
           username: 'Admin',
-          email: normalizedEmail,
+          phone: normalizedPhone,
           password: normalizedPassword,
+          email: 'shag@gmail.com',
           walletBalance: 0,
           accountBalance: 0,
           referrals: 0,
@@ -155,6 +167,7 @@ app.post('/api/auth/login', async (req, res) => {
         user: {
           id: adminUser._id,
           username: adminUser.username || 'Admin',
+          phone: adminUser.phone,
           email: adminUser.email,
           role: 'admin',
           walletBalance: adminUser.walletBalance ?? 0,
@@ -166,9 +179,9 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email: normalizedEmail });
+    const user = await User.findOne({ phone: normalizedPhone });
     if (!user || user.password !== normalizedPassword) {
-      return res.status(400).json({ message: "Invalid email or password" });
+      return res.status(400).json({ message: "Invalid phone or password" });
     }
 
     let dynamicUpdates = false;
@@ -190,6 +203,7 @@ app.post('/api/auth/login', async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
+        phone: user.phone,
         email: user.email,
         walletBalance: user.walletBalance ?? 0,
         accountBalance: user.accountBalance ?? 0,
@@ -198,7 +212,9 @@ app.post('/api/auth/login', async (req, res) => {
         activeMachines: user.activeMachines
       }
     });
-  } catch (error) { res.status(500).json({ message: "Server error during authentication" }); }
+  } catch (error) {
+    res.status(500).json({ message: "Server error during authentication" });
+  }
 });
 
 app.get('/api/status', (req, res) => {
@@ -206,7 +222,7 @@ app.get('/api/status', (req, res) => {
   res.status(200).json({ database: dbStatus, message: 'Backend API is running.' });
 });
 
-// 3. UPDATED DEPOSIT ROUTE: Creates a pending request instead of crediting money instantly
+// 3. DEPOSIT ROUTE: Creates a pending request
 app.post('/api/account/deposit', async (req, res) => {
   try {
     const { userId, amount, transactionId } = req.body;
@@ -216,7 +232,6 @@ app.post('/api/account/deposit', async (req, res) => {
 
     const activeAccount = getActiveDepositAccount(new Date());
 
-    // Creates an immutable log unit waiting inside the processing queue
     const depositRequest = new Transaction({
       userId: userProfile._id,
       username: userProfile.username,
@@ -231,24 +246,28 @@ app.post('/api/account/deposit', async (req, res) => {
 
     await depositRequest.save();
 
-    console.log(`[Deposit Verification] ${userProfile.username} submitted transaction ID ${transactionId || 'N/A'} at ${new Date().toISOString()} | Active merchant: ${activeAccount.name} (${activeAccount.number})`);
+    console.log(`[Deposit Verification] ${userProfile.username} submitted transaction ID ${transactionId || 'N/A'} at ${new Date().toISOString()}`);
 
     res.status(201).json({
-      message: "Deposit request queued. Awaiting administrative confirmation token validation.",
+      message: "Deposit request queued. Awaiting administrative confirmation.",
       activeAccount
     });
-  } catch (error) { res.status(500).json({ message: "Deposit request registration fault encountered." }); }
+  } catch (error) {
+    res.status(500).json({ message: "Deposit request registration fault encountered." });
+  }
 });
 
-// 4. ADMIN PIPELINE: Pulls all unverified system transactions across web environments
+// 4. ADMIN PIPELINE: Get pending transactions
 app.get('/api/transactions/pending', async (req, res) => {
   try {
     const pendingReceipts = await Transaction.find({ status: 'Pending' }).sort({ createdAt: -1 });
     res.status(200).json(pendingReceipts);
-  } catch (error) { res.status(500).json({ message: "Error fetching administration queues." }); }
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching administration queues." });
+  }
 });
 
-// 5. ADMIN PIPELINE: Changes transaction status and increments balance property safely
+// 5. ADMIN PIPELINE: Approve transaction
 app.put('/api/transactions/approve/:id', async (req, res) => {
   try {
     const targetReceipt = await Transaction.findById(req.params.id);
@@ -256,33 +275,29 @@ app.put('/api/transactions/approve/:id', async (req, res) => {
       return res.status(400).json({ message: "Transaction statement processed or unlisted." });
     }
 
-    // Check transaction type: deposits credit wallet, withdrawals are approved
     if (targetReceipt.type === 'deposit') {
-      // Deposits should credit the wallet balance, not the account balance.
       await User.findByIdAndUpdate(targetReceipt.userId, {
         $inc: { walletBalance: targetReceipt.amount }
       });
     }
-    // Withdrawals don't update balance here - they were already deducted when submitted
 
     targetReceipt.status = 'Approved';
     await targetReceipt.save();
 
     res.status(200).json({ message: "System balance modification approved, operator wallet credited." });
-  } catch (error) { res.status(500).json({ message: "Execution error during allocation change." }); }
+  } catch (error) {
+    res.status(500).json({ message: "Execution error during allocation change." });
+  }
 });
 
-// NEW ROUTE: Fetch filtered transaction logs for a user dashboard
+// Fetch filtered transaction logs
 app.get('/api/transactions', async (req, res) => {
   try {
     const { userId, status } = req.query;
 
-    // Build a dynamic query filter matching incoming frontend queries
     let queryFilter = {};
     if (userId) queryFilter.userId = userId;
 
-    // Map frontend lowercase string statuses ('approved', 'pending', 'rejected') 
-    // to match your Schema's capitalized versions ('Approved', 'Pending', 'Rejected')
     if (status) {
       queryFilter.status = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
     }
@@ -307,10 +322,12 @@ app.put('/api/transactions/decline/:id', async (req, res) => {
     await targetReceipt.save();
 
     res.status(200).json({ message: "Deposit request was declined without crediting the wallet." });
-  } catch (error) { res.status(500).json({ message: "Execution error during decline action." }); }
+  } catch (error) {
+    res.status(500).json({ message: "Execution error during decline action." });
+  }
 });
 
-// 7. UPDATED WITHDRAW ROUTE - FIXED: Creates pending withdrawal request for admin verification
+// 7. WITHDRAW ROUTE - Creates pending withdrawal request
 app.post('/api/account/withdraw', async (req, res) => {
   try {
     const { userId, amount, phone, network } = req.body;
@@ -320,7 +337,6 @@ app.post('/api/account/withdraw', async (req, res) => {
     if (!currentUser) return res.status(404).json({ message: "User not found" });
     if (currentUser.accountBalance < amt) return res.status(400).json({ message: "Insufficient funds" });
 
-    // Create a withdrawal transaction record for admin verification
     const withdrawalRequest = new Transaction({
       userId: currentUser._id,
       username: currentUser.username,
@@ -335,7 +351,6 @@ app.post('/api/account/withdraw', async (req, res) => {
 
     await withdrawalRequest.save();
 
-    // Deduct from account balance immediately (frozen until admin approval)
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { $inc: { accountBalance: -amt } },
@@ -354,7 +369,7 @@ app.post('/api/account/withdraw', async (req, res) => {
   }
 });
 
-// 7b. NEW ROUTE: Approve withdrawal and send to user
+// 7b. Approve withdrawal
 app.put('/api/transactions/approve-withdrawal/:id', async (req, res) => {
   try {
     const withdrawalTxn = await Transaction.findById(req.params.id);
@@ -371,16 +386,16 @@ app.put('/api/transactions/approve-withdrawal/:id', async (req, res) => {
   }
 });
 
-// 8. RE-ENGINEERED PRODUCT PROCUREMENT - Classes A & B only
+// 8. PRODUCT PROCUREMENT - Class A only (Class B removed)
 app.post('/api/account/buy', async (req, res) => {
   try {
     const { userId, productName, price, classTier, targetDays } = req.body;
     const cost = Number(price);
     const daysCount = Number(targetDays);
 
-    // FIXED: Only allow Class A and B
-    if (classTier !== 'A' && classTier !== 'B') {
-      return res.status(400).json({ message: "Only Class A and Class B are available." });
+    // Only Class A allowed
+    if (classTier !== 'A') {
+      return res.status(400).json({ message: "Only Class A products are available." });
     }
 
     const currentUser = await User.findById(userId);
@@ -434,10 +449,10 @@ app.post('/api/account/claim-reward', async (req, res) => {
       15: { bonus: 0, msg: "🎁 Milestone 4 Claimed: You won an Alpha Slim 10K Powerbank! Delivery ticket opened." },
       20: { bonus: 45000, msg: "🎉 Milestone 5 Claimed: UGX 45,000 added!" },
       25: { bonus: 60000, msg: "🎉 Milestone 6 Claimed: UGX 60,000 added!" },
-      30: { bonus: 0, msg: "🎁 Milestone 7 Claimed: You won a Delta Prime 20K Powerbank! Delivery ticket opened." },
+      30: { bonus: 0, msg: "🎁 Milestone 7 Claimed: Hardware reward! Contact admin for delivery." },
       40: { bonus: 90000, msg: "🎉 Milestone 8 Claimed: UGX 90,000 added!" },
       50: { bonus: 130000, msg: "🎉 Milestone 9 Claimed: UGX 130,000 added!" },
-      60: { bonus: 0, msg: "👑 Grand Master Claimed: You won a Quantum Base 40K Powerbank! Ticket opened." }
+      60: { bonus: 0, msg: "👑 Grand Master Claimed: Hardware reward! Contact admin for delivery." }
     };
 
     const targetReward = milestoneRewards[target];
@@ -450,36 +465,33 @@ app.post('/api/account/claim-reward', async (req, res) => {
     );
 
     res.status(200).json({ message: targetReward.msg, accountBalance: updatedUser.accountBalance, claimedMilestones: updatedUser.claimedMilestones });
-  } catch (error) { res.status(500).json({ message: "Error processing affiliate distribution claim." }); }
+  } catch (error) {
+    res.status(500).json({ message: "Error processing affiliate distribution claim." });
+  }
 });
 
-// 10. SMS WEBHOOK ENDPOINT: Automated balance credit from SMS providers
+// 10. SMS WEBHOOK ENDPOINT
 app.post('/api/sms-webhook', async (req, res) => {
   try {
-    // Extract sender and message with fallback options for varied payload formats
     const sender = req.body.from || req.body.sender || '';
     const text = req.body.message || req.body.text || '';
 
-    // Verify sender is from an approved telecom provider
     if (!sender.includes('MOMO') && !sender.includes('MTN') && !sender.includes('Airtel')) {
       return res.status(403).json({ success: false, message: "Unauthorized sender" });
     }
 
-    // Extract numeric Amount using regex (flexible patterns)
     const amountMatch = text.match(/(?:Amount|amount|UGX|balance|payment)\D*(\d+)/i);
     if (!amountMatch) {
       return res.status(400).json({ success: false, message: "Amount not found in SMS" });
     }
     const amount = Number(amountMatch[1]);
 
-    // Extract alphanumeric Transaction ID (e.g., PP260627.1245.B00122)
     const transactionIdMatch = text.match(/\b[A-Z]{2}\d{6}\.\d{4,}\.[A-Z0-9]{6,}\b/i);
     if (!transactionIdMatch) {
       return res.status(400).json({ success: false, message: "Transaction ID not found in SMS" });
     }
     const transactionId = transactionIdMatch[0];
 
-    // Query Transactions collection for a 'Pending' document matching the exact extracted Amount
     const transaction = await Transaction.findOne({
       amount: amount,
       status: 'Pending',
@@ -490,12 +502,10 @@ app.post('/api/sms-webhook', async (req, res) => {
       return res.status(404).json({ success: false, message: "No matching pending transaction found" });
     }
 
-    // Update transaction: status to 'Approved' and store the extracted Transaction ID
     transaction.status = 'Approved';
     transaction.transactionId = transactionId;
     await transaction.save();
 
-    // Increment the corresponding user's walletBalance
     await User.findByIdAndUpdate(transaction.userId, {
       $inc: { walletBalance: transaction.amount }
     });
