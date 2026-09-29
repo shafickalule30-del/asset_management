@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
 const getApiBaseUrl = () => {
@@ -11,6 +11,8 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 const getUserStateStorageKey = (userId) => `userState:${userId}`;
+const phonePattern = /^07\d{8}$/;
+const validatePassword = (value) => /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/.test(value || '');
 
 const buildPersistedUser = (userData) => ({
   ...userData,
@@ -25,7 +27,7 @@ const buildPersistedUser = (userData) => ({
 });
 
 function Login() {
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -37,15 +39,30 @@ function Login() {
     setError('');
     setLoading(true);
 
-    try {
-      const normalizedEmail = (email || '').trim().toLowerCase();
-      const normalizedPassword = (password || '').trim();
+    const normalizedPhone = (phone || '').trim();
+    const normalizedPassword = (password || '').trim();
 
-      if (normalizedEmail === 'shag@gmail.com' && normalizedPassword === '123456') {
+    if (!phonePattern.test(normalizedPhone)) {
+      setError('❌ Enter a valid phone number starting with 074...');
+      setLoading(false);
+      return;
+    }
+
+    if (!validatePassword(normalizedPassword)) {
+      setError('❌ Password must contain letters and numbers with at least 6 characters.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const adminPhone = '0740000000';
+      const adminEmail = 'shag@gmail.com';
+      if ((normalizedPhone === adminPhone || normalizedPhone === adminEmail) && normalizedPassword === '123456') {
         const adminUser = {
           id: 'admin-1',
           username: 'Admin',
-          email: normalizedEmail,
+          phone: adminPhone,
+          email: adminEmail,
           role: 'admin',
           walletBalance: 0,
           balanceAccount: 0,
@@ -74,7 +91,7 @@ function Login() {
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: normalizedEmail, password: normalizedPassword })
+        body: JSON.stringify({ phone: normalizedPhone, password: normalizedPassword })
       });
 
       const textData = await response.text();
@@ -85,9 +102,10 @@ function Login() {
         const userRole = String(userPayload.role || data.role || 'user').toLowerCase();
         const userData = buildPersistedUser({
           ...userPayload,
-          id: userPayload.id || userPayload._id || data.id || email,
-          username: userPayload.username || data.username || email.split('@')[0],
-          email: userPayload.email || email,
+          id: userPayload.id || userPayload._id || data.id || normalizedPhone,
+          username: userPayload.username || data.username || normalizedPhone,
+          phone: userPayload.phone || normalizedPhone,
+          email: userPayload.email || data.email || '',
           role: userRole,
           walletBalance: userPayload.walletBalance ?? userPayload.balance ?? data.balance ?? 0,
           balanceAccount: userPayload.balanceAccount ?? userPayload.balance ?? data.balance ?? 0,
@@ -136,7 +154,7 @@ function Login() {
           position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px'
         }}>
           <div style={{
-            width: '100%', maxWidth: '360px', background: 'linear-gradient(180deg, #111 0%, #0a0a0a 100%)', border: '2px solid #00FF66', borderRadius: '18px', padding: '26px 22px', boxShadow: '0 12px 42px rgba(0,255,102,0.25)', textAlign: 'center'
+            width: '100%', maxWidth: '360px', background: 'linear-gradient(180deg, #111 0%, #0a0a0a 100%)', border: '2px solid #00FF66', borderRadius: '18px', padding: '26px 22px', boxShadow: '0 0 18px rgba(0, 255, 102, 0.18)'
           }}>
             <div style={{ fontSize: '34px', marginBottom: '10px' }}>✅</div>
             <div style={{ color: '#00FF66', fontSize: '12px', letterSpacing: '2px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '8px' }}>Success</div>
@@ -146,7 +164,7 @@ function Login() {
               type="button"
               onClick={dismissSuccess}
               style={{
-                width: '100%', border: 'none', borderRadius: '10px', background: 'linear-gradient(135deg, #00FF66 0%, #00d9ff 100%)', color: '#000', fontWeight: '800', fontSize: '16px', padding: '13px 16px', cursor: 'pointer'
+                width: '100%', border: 'none', borderRadius: '10px', background: 'linear-gradient(135deg, #00FF66 0%, #00d9ff 100%)', color: '#000', fontWeight: '800', fontSize: '16px', padding: '14px'
               }}
             >
               {success.actionText}
@@ -180,14 +198,16 @@ function Login() {
         <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div>
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
-              EMAIL ADDRESS
+              PHONE NUMBER
             </label>
             <input
-              type="email"
+              type="tel"
+              inputMode="numeric"
               required
-              placeholder="operator@domain.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              pattern="07[0-9]{8}"
+              placeholder="0741234567"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               style={{ width: '100%', padding: '12px', backgroundColor: '#111', border: '1px solid #222', borderRadius: '6px', color: '#fff', boxSizing: 'border-box' }}
             />
           </div>
@@ -199,7 +219,7 @@ function Login() {
             <input
               type="password"
               required
-              placeholder="••••••••"
+              placeholder="Letters and numbers"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               style={{ width: '100%', padding: '12px', backgroundColor: '#111', border: '1px solid #222', borderRadius: '6px', color: '#fff', boxSizing: 'border-box' }}
