@@ -1,20 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+
+const phonePattern = /^07\d{8}$/;
+const validatePassword = (value) => /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/.test(value || '');
 
 function Register() {
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [referrerId, setReferrerId] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(null);
   const navigate = useNavigate();
 
+  // ==========================================
+  // 🔗 URL INTERCEPT ENGINE - Capture referral link
+  // ==========================================
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    const refToken = queryParams.get('ref');
+    
+    if (refToken) {
+      setReferrerId(refToken);
+      console.log(`🔗 Referral link detected! Referrer ID: ${refToken}`);
+    }
+  }, []);
+
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    if (!phonePattern.test(phone)) {
+      setError('❌ Enter a valid phone number (074XXXXXXXX)');
+      setLoading(false);
+      return;
+    }
+
+    if (!validatePassword(password)) {
+      setError('❌ Password must contain letters and numbers with at least 6 characters.');
+      setLoading(false);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('❌ Passwords do not match!');
@@ -26,25 +55,30 @@ function Register() {
       const response = await fetch('https://asset-management-55t5.onrender.com/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password })
+        body: JSON.stringify({
+          username,
+          phone,
+          password,
+          referrerId: referrerId || null
+        })
       });
 
-      const textData = await response.text();
-      const data = textData ? JSON.parse(textData) : {};
+      const responseText = await response.text();
+      const data = responseText ? JSON.parse(responseText) : {};
 
       if (response.ok) {
         setSuccess({
-          title: 'Signup successful',
-          message: 'Your account has been created. Redirecting to the login screen.',
+          title: 'Account Created!',
+          message: 'Your account has been created. Redirecting to login...',
           actionText: 'OK',
           onAction: () => navigate('/login')
         });
       } else {
-        setError(data.message || 'Registration failed processing profile.');
+        setError(data.message || 'Registration failed.');
       }
-    } catch (err) {
-      console.error('Registration routing error:', err);
-      setError('❌ Connection timeout. Cannot reach the cloud API endpoint.');
+    } catch (error) {
+      console.error('Signup error:', error);
+      setError('❌ Cannot reach the backend server. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -59,14 +93,14 @@ function Register() {
   return (
     <div style={{
       backgroundColor: '#000000', minHeight: '100vh', display: 'flex',
-      justifyContent: 'center', alignItems: 'center', fontFamily: 'sans-serif', padding: '20px'
+      justifyContent: 'center', alignItems: 'center', fontFamily: 'sans-serif', color: '#ffffff', padding: '20px'
     }}>
       {success && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px'
         }}>
           <div style={{
-            width: '100%', maxWidth: '360px', background: 'linear-gradient(180deg, #111 0%, #0a0a0a 100%)', border: '2px solid #00FF66', borderRadius: '18px', padding: '26px 22px', boxShadow: '0 12px 42px rgba(0,255,102,0.25)', textAlign: 'center'
+            width: '100%', maxWidth: '360px', background: 'linear-gradient(180deg, #111 0%, #0a0a0a 100%)', border: '2px solid #00FF66', borderRadius: '18px', padding: '26px 22px', boxShadow: '0 0 18px rgba(0, 255, 102, 0.18)'
           }}>
             <div style={{ fontSize: '34px', marginBottom: '10px' }}>🎉</div>
             <div style={{ color: '#00FF66', fontSize: '12px', letterSpacing: '2px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '8px' }}>Success</div>
@@ -76,7 +110,7 @@ function Register() {
               type="button"
               onClick={dismissSuccess}
               style={{
-                width: '100%', border: 'none', borderRadius: '10px', background: 'linear-gradient(135deg, #00FF66 0%, #00d9ff 100%)', color: '#000', fontWeight: '800', fontSize: '16px', padding: '13px 16px', cursor: 'pointer'
+                width: '100%', border: 'none', borderRadius: '10px', background: 'linear-gradient(135deg, #00FF66 0%, #00d9ff 100%)', color: '#000', fontWeight: '800', fontSize: '16px', padding: '14px'
               }}
             >
               {success.actionText}
@@ -86,25 +120,28 @@ function Register() {
       )}
 
       <div style={{
-        width: '100%', maxWidth: '400px', backgroundColor: '#0a0a0a',
-        border: '2px solid #00FF66', borderRadius: '12px', padding: '30px',
-        boxShadow: '0px 0px 15px rgba(0, 255, 102, 0.2)'
+        width: '100%', maxWidth: '400px', padding: '30px', borderRadius: '10px',
+        border: '2px solid #00FF66', backgroundColor: '#111111', boxShadow: '0px 0px 15px rgba(0, 255, 102, 0.2)',
+        boxSizing: 'border-box'
       }}>
-        <div style={{ textAlign: 'center', marginBottom: '25px' }}>
-          <h2 style={{ color: '#00FF66', margin: '0 0 8px 0', fontSize: '24px', fontWeight: 'bold' }}>
-            CREATE TERMINAL
-          </h2>
-          <p style={{ color: '#666', margin: 0, fontSize: '13px' }}>
-            Register your machine system profile
-          </p>
-        </div>
+        <h2 style={{ textAlign: 'center', color: '#00FF66', marginBottom: '25px', margin: 0 }}>CREATE TERMINAL</h2>
 
         {error && (
           <div style={{
-            backgroundColor: 'rgba(255, 68, 68, 0.1)', border: '1px solid #ff4444',
-            borderRadius: '6px', padding: '10px', color: '#ff4444', fontSize: '13px', marginBottom: '20px', textAlign: 'center'
+            color: '#ff4444', backgroundColor: 'rgba(255, 68, 68, 0.1)', border: '1px solid #ff4444',
+            padding: '10px', borderRadius: '6px', fontSize: '13px', marginBottom: '20px', textAlign: 'center'
           }}>
             {error}
+          </div>
+        )}
+
+        {referrerId && (
+          <div style={{
+            backgroundColor: 'rgba(0, 255, 102, 0.1)', border: '1px solid #00FF66',
+            padding: '10px', borderRadius: '6px', fontSize: '12px', marginBottom: '15px', textAlign: 'center',
+            color: '#00FF66'
+          }}>
+            ✅ Referred by: {referrerId.slice(0, 8)}...
           </div>
         )}
 
@@ -119,35 +156,37 @@ function Register() {
               placeholder="e.g. operator1"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              style={{ width: '100%', padding: '12px', backgroundColor: '#111', border: '1px solid #222', borderRadius: '6px', color: '#fff', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '12px', backgroundColor: '#000', border: '1px solid #222', borderRadius: '6px', color: '#fff', boxSizing: 'border-box' }}
             />
           </div>
 
           <div>
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
-              EMAIL ADDRESS
+              PHONE NUMBER
             </label>
             <input
-              type="email"
+              type="tel"
+              inputMode="numeric"
               required
-              placeholder="operator@domain.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{ width: '100%', padding: '12px', backgroundColor: '#111', border: '1px solid #222', borderRadius: '6px', color: '#fff', boxSizing: 'border-box' }}
+              pattern="07[0-9]{8}"
+              placeholder="0741234567"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              style={{ width: '100%', padding: '12px', backgroundColor: '#000', border: '1px solid #222', borderRadius: '6px', color: '#fff', boxSizing: 'border-box' }}
             />
           </div>
 
           <div>
             <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>
-              ACCESS PASSWORD
+              PASSWORD (Letters + Numbers)
             </label>
             <input
               type="password"
               required
-              placeholder="••••••••"
+              placeholder="Must contain letters and numbers"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={{ width: '100%', padding: '12px', backgroundColor: '#111', border: '1px solid #222', borderRadius: '6px', color: '#fff', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '12px', backgroundColor: '#000', border: '1px solid #222', borderRadius: '6px', color: '#fff', boxSizing: 'border-box' }}
             />
           </div>
 
@@ -158,10 +197,10 @@ function Register() {
             <input
               type="password"
               required
-              placeholder="••••••••"
+              placeholder="Confirm password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              style={{ width: '100%', padding: '12px', backgroundColor: '#111', border: '1px solid #222', borderRadius: '6px', color: '#fff', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '12px', backgroundColor: '#000', border: '1px solid #222', borderRadius: '6px', color: '#fff', boxSizing: 'border-box' }}
             />
           </div>
 
