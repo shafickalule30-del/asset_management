@@ -62,6 +62,22 @@ const Transaction = mongoose.model('Transaction', transactionSchema);
 // ==========================================
 // ⚙️ HELPER LOGIC FUNCTIONS
 // ==========================================
+
+// Password validation: Must contain letters + numbers, 6+ characters
+const validatePassword = (password) => {
+  return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/.test(password || '');
+};
+
+// Phone format validation: Must be 07XXXXXXXX (10 digits)
+const validatePhoneFormat = (phone) => {
+  return /^07\d{8}$/.test(phone || '');
+};
+
+// Normalize phone: trim whitespace
+const normalizePhone = (phone) => {
+  return (phone || '').trim();
+};
+
 function addBusinessDays(startDate, daysToAdd) {
   let currentDate = new Date(startDate);
   let addedDays = 0;
@@ -117,15 +133,42 @@ app.post('/api/auth/register', async (req, res) => {
   try {
     const { username, phone, password, referrerId } = req.body;
     
-    if (!username || !phone || !password) {
+    // Normalize and validate inputs
+    const normalizedPhone = normalizePhone(phone);
+    const normalizedPassword = (password || '').trim();
+
+    // Validation
+    if (!username || !normalizedPhone || !normalizedPassword) {
       return res.status(400).json({ message: "Username, phone, and password are required." });
     }
 
-    const existingUser = await User.findOne({ phone });
+    if (!validatePhoneFormat(normalizedPhone)) {
+      return res.status(400).json({ message: "Phone must be in format 07XXXXXXXX" });
+    }
+
+    if (!validatePassword(normalizedPassword)) {
+      return res.status(400).json({ message: "Password must contain letters and numbers with at least 6 characters." });
+    }
+
+    // Check if phone already exists
+    const existingUser = await User.findOne({ phone: normalizedPhone });
     if (existingUser) return res.status(400).json({ message: "This phone number is already registered!" });
 
-    const newUser = new User({ username, phone, password, activeMachines: [] });
+    // Create new user with ALL fields properly initialized
+    const newUser = new User({
+      username: username.trim(),
+      phone: normalizedPhone,
+      password: normalizedPassword,
+      email: '',
+      walletBalance: 0,
+      accountBalance: 0,
+      referrals: 0,
+      claimedMilestones: [],
+      activeMachines: []
+    });
+
     await newUser.save();
+    console.log(`✅ User registered successfully: ${normalizedPhone}`);
 
     // Increment referrer's referrals if referrerId is valid
     if (referrerId && mongoose.Types.ObjectId.isValid(referrerId)) {
@@ -134,7 +177,8 @@ app.post('/api/auth/register', async (req, res) => {
     
     res.status(201).json({ message: "User registered successfully!" });
   } catch (error) {
-    res.status(500).json({ message: "Server error saving user profile" });
+    console.error("❌ Registration Error:", error.message || error);
+    res.status(500).json({ message: "Server error saving user profile", error: error.message });
   }
 });
 
@@ -142,8 +186,15 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { phone, password } = req.body;
-    const normalizedPhone = (phone || '').trim();
+    const normalizedPhone = normalizePhone(phone);
     const normalizedPassword = (password || '').trim();
+
+    // Validate phone format
+    if (!validatePhoneFormat(normalizedPhone)) {
+      return res.status(400).json({ message: "Invalid phone format. Use 07XXXXXXXX" });
+    }
+
+    console.log(`🔐 Login attempt for phone: ${normalizedPhone}`);
 
     // Admin access
     if (normalizedPhone === '0740000000' && normalizedPassword === '123456') {
@@ -162,6 +213,7 @@ app.post('/api/auth/login', async (req, res) => {
         });
       }
 
+      console.log(`✅ Admin login successful`);
       return res.status(200).json({
         message: 'Login successful!',
         user: {
@@ -179,10 +231,20 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
+    // Find user by phone
     const user = await User.findOne({ phone: normalizedPhone });
-    if (!user || user.password !== normalizedPassword) {
+    if (!user) {
+      console.log(`❌ User not found: ${normalizedPhone}`);
       return res.status(400).json({ message: "Invalid phone or password" });
     }
+
+    // Verify password (exact match)
+    if (user.password !== normalizedPassword) {
+      console.log(`❌ Password mismatch for ${normalizedPhone}`);
+      return res.status(400).json({ message: "Invalid phone or password" });
+    }
+
+    console.log(`✅ User login successful: ${normalizedPhone}`);
 
     let dynamicUpdates = false;
     user.activeMachines.forEach(machine => {
@@ -213,7 +275,8 @@ app.post('/api/auth/login', async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error during authentication" });
+    console.error("❌ Login Error:", error.message || error);
+    res.status(500).json({ message: "Server error during authentication", error: error.message });
   }
 });
 
@@ -253,6 +316,7 @@ app.post('/api/account/deposit', async (req, res) => {
       activeAccount
     });
   } catch (error) {
+    console.error("❌ Deposit Error:", error.message || error);
     res.status(500).json({ message: "Deposit request registration fault encountered." });
   }
 });
@@ -263,6 +327,7 @@ app.get('/api/transactions/pending', async (req, res) => {
     const pendingReceipts = await Transaction.find({ status: 'Pending' }).sort({ createdAt: -1 });
     res.status(200).json(pendingReceipts);
   } catch (error) {
+    console.error("❌ Fetch Transactions Error:", error.message || error);
     res.status(500).json({ message: "Error fetching administration queues." });
   }
 });
@@ -286,6 +351,7 @@ app.put('/api/transactions/approve/:id', async (req, res) => {
 
     res.status(200).json({ message: "System balance modification approved, operator wallet credited." });
   } catch (error) {
+    console.error("❌ Approve Transaction Error:", error.message || error);
     res.status(500).json({ message: "Execution error during allocation change." });
   }
 });
@@ -323,6 +389,7 @@ app.put('/api/transactions/decline/:id', async (req, res) => {
 
     res.status(200).json({ message: "Deposit request was declined without crediting the wallet." });
   } catch (error) {
+    console.error("❌ Decline Transaction Error:", error.message || error);
     res.status(500).json({ message: "Execution error during decline action." });
   }
 });
@@ -382,6 +449,7 @@ app.put('/api/transactions/approve-withdrawal/:id', async (req, res) => {
 
     res.status(200).json({ message: "Withdrawal approved and sent to user." });
   } catch (error) {
+    console.error("❌ Approve Withdrawal Error:", error.message || error);
     res.status(500).json({ message: "Error approving withdrawal." });
   }
 });
@@ -466,6 +534,7 @@ app.post('/api/account/claim-reward', async (req, res) => {
 
     res.status(200).json({ message: targetReward.msg, accountBalance: updatedUser.accountBalance, claimedMilestones: updatedUser.claimedMilestones });
   } catch (error) {
+    console.error("❌ Claim Reward Error:", error.message || error);
     res.status(500).json({ message: "Error processing affiliate distribution claim." });
   }
 });
