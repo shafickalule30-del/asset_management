@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
 const getApiBaseUrl = () => {
@@ -43,7 +43,7 @@ function Login() {
     const normalizedPassword = (password || '').trim();
 
     if (!phonePattern.test(normalizedPhone)) {
-      setError('❌ Enter a valid phone number starting with 074...');
+      setError('❌ Enter a valid phone number starting with 07...');
       setLoading(false);
       return;
     }
@@ -154,7 +154,7 @@ function Login() {
           position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px'
         }}>
           <div style={{
-            width: '100%', maxWidth: '360px', background: 'linear-gradient(180deg, #111 0%, #0a0a0a 100%)', border: '2px solid #00FF66', borderRadius: '18px', padding: '26px 22px', boxShadow: '0 0 18px rgba(0, 255, 102, 0.18)'
+            width: '100%', maxWidth: '360px', background: 'linear-gradient(180deg, #111 0%, #0a0a0a 100%)', border: '2px solid #00FF66', borderRadius: '18px', padding: '26px 22px', boxShadow: '0 0 40px rgba(0, 255, 102, 0.15)'
           }}>
             <div style={{ fontSize: '34px', marginBottom: '10px' }}>✅</div>
             <div style={{ color: '#00FF66', fontSize: '12px', letterSpacing: '2px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '8px' }}>Success</div>
@@ -164,7 +164,7 @@ function Login() {
               type="button"
               onClick={dismissSuccess}
               style={{
-                width: '100%', border: 'none', borderRadius: '10px', background: 'linear-gradient(135deg, #00FF66 0%, #00d9ff 100%)', color: '#000', fontWeight: '800', fontSize: '16px', padding: '14px'
+                width: '100%', border: 'none', borderRadius: '10px', background: 'linear-gradient(135deg, #00FF66 0%, #00d9ff 100%)', color: '#000', fontWeight: '800', fontSize: '16px', padding: '12px', cursor: 'pointer'
               }}
             >
               {success.actionText}
