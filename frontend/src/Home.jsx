@@ -1,222 +1,975 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const API_BASE_URL = 'https://asset-management-55t5.onrender.com';
+function PowerbankGraphic({ accentColor = '#00FF66' }) {
+  return (
+    <div style={{
+      position: 'relative',
+      width: '56px',
+      height: '90px',
+      background: 'linear-gradient(145deg, #1e1e1e, #0f0f0f)',
+      borderRadius: '8px',
+      boxShadow: '0 6px 12px rgba(0,0,0,0.5), inset 0 1px 2px rgba(255,255,255,0.1)',
+      border: '1px solid #2a2a2a',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '8px 4px',
+      boxSizing: 'border-box',
+    }}>
+      <div style={{ width: '80%', height: '2px', backgroundColor: accentColor, borderRadius: '2px', opacity: 0.8, boxShadow: `0 0 4px ${accentColor}` }} />
+      <div style={{ width: '85%', height: '22px', backgroundColor: '#050505', borderRadius: '4px', border: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#fff', fontWeight: 'bold' }} />
+      <div style={{ display: 'flex', gap: '5px', justifyContent: 'center', width: '100%' }}>
+        <div style={{ width: '13px', height: '5px', backgroundColor: '#151515', border: '1px solid #333', borderRadius: '1px', position: 'relative' }}>
+          <div style={{ width: '100%', height: '1px', backgroundColor: accentColor, position: 'absolute', top: 0, opacity: 0.7 }} />
+        </div>
+        <div style={{ width: '13px', height: '5px', backgroundColor: '#151515', border: '1px solid #333', borderRadius: '1px', position: 'relative' }}>
+          <div style={{ width: '100%', height: '1px', backgroundColor: accentColor, position: 'absolute', top: 0, opacity: 0.7 }} />
+        </div>
+      </div>
+      <div style={{ width: '50%', height: '10px', display: 'flex', flexDirection: 'column', gap: '2px', opacity: 0.2 }}>
+        <div style={{ width: '100%', height: '1px', backgroundColor: '#fff' }} />
+        <div style={{ width: '60%', height: '1px', backgroundColor: '#fff', alignSelf: 'center' }} />
+      </div>
+    </div>
+  );
+}
+
+function calculateProfit(price, classTier) {
+  if (classTier === 'A') return price * 0.5;
+  return 0;
+}
+
+function calculateTotalReturn(price, classTier) {
+  return price + calculateProfit(price, classTier);
+}
+
+function getProductProfit(product) {
+  if (product && typeof product.profit === 'number') return product.profit;
+  return calculateProfit(product.price, product.classTier);
+}
+
+function getProductTotalReturn(product) {
+  if (product && typeof product.totalReturn === 'number') return product.totalReturn;
+  return calculateTotalReturn(product.price, product.classTier);
+}
+
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return '';
+  }
+  return 'https://asset-management-55t5.onrender.com';
+};
+
+const ADMIN_API = getApiBaseUrl();
+
+const depositAccounts = [
+  { number: '0730618292', name: 'Paul Jero' },
+  { number: '0750682508', name: 'Kakembo David' }
+];
+
+const getStoredUser = () => {
+  try {
+    const rawUser = localStorage.getItem('user');
+    return rawUser ? JSON.parse(rawUser) : null;
+  } catch {
+    return null;
+  }
+};
+
 const getUserStateStorageKey = (userId) => `userState:${userId}`;
 
+const getStoredUserState = (userId) => {
+  if (!userId) return null;
+  try {
+    const rawState = localStorage.getItem(getUserStateStorageKey(userId));
+    return rawState ? JSON.parse(rawState) : null;
+  } catch {
+    return null;
+  }
+};
+
 function Home() {
-  const navigate = useNavigate();
+  const initialStoredUser = getStoredUser();
+  const initialStoredUserState = getStoredUserState(initialStoredUser?.id);
+
+  const [user, setUser] = useState(initialStoredUser);
+  const [activeTab, setActiveTab] = useState('home');
+  const [walletBalance, setWalletBalance] = useState(initialStoredUserState?.walletBalance ?? initialStoredUser?.walletBalance ?? 0);
+  const [balanceAccount, setBalanceAccount] = useState(initialStoredUserState?.balanceAccount ?? initialStoredUser?.balanceAccount ?? 0);
+  const [referrals, setReferrals] = useState(initialStoredUserState?.referrals ?? initialStoredUser?.referrals ?? 0);
+  const [claimedList, setClaimedList] = useState(initialStoredUserState?.claimedMilestones ?? initialStoredUser?.claimedMilestones ?? []);
+  const [activeMachines, setActiveMachines] = useState(initialStoredUserState?.activeMachines ?? initialStoredUser?.activeMachines ?? []);
+  const [pendingDeposits, setPendingDeposits] = useState(initialStoredUserState?.pendingDeposits ?? initialStoredUser?.pendingDeposits ?? []);
+  const [pendingWithdrawals, setPendingWithdrawals] = useState(initialStoredUserState?.pendingWithdrawals ?? initialStoredUser?.pendingWithdrawals ?? []);
+  const [processedDepositIds, setProcessedDepositIds] = useState(initialStoredUserState?.processedDepositIds ?? initialStoredUser?.processedDepositIds ?? []);
+  const [transactions, setTransactions] = useState(initialStoredUserState?.transactions ?? initialStoredUser?.transactions ?? []);
+  const [currentView, setCurrentView] = useState('dashboard');
+  const [selectedClass, setSelectedClass] = useState('A');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [completedMachine, setCompletedMachine] = useState(null);
+  const [selectedProductToBuy, setSelectedProductToBuy] = useState(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [user, setUser] = useState(null);
-  const [walletBalance, setWalletBalance] = useState(0);
-  const [balanceAccount, setBalanceAccount] = useState(0);
-  const [referrals, setReferrals] = useState(0);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [activeMachines, setActiveMachines] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [pendingDeposits, setPendingDeposits] = useState([]);
-  const [pendingWithdrawals, setPendingWithdrawals] = useState([]);
-  const [claimedMilestones, setClaimedMilestones] = useState([]);
-  const [referralLink, setReferralLink] = useState('');
-  const [showAlert, setShowAlert] = useState(null);
-  const [referralCommissions, setReferralCommissions] = useState(0);
-  const [referredUsers, setReferredUsers] = useState([]);
+  const [paymentId, setPaymentId] = useState('');
+  const [depositAmount, setDepositAmount] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [receiveAmount, setReceiveAmount] = useState(0);
+  const [depositNetwork, setDepositNetwork] = useState('MTN');
+  const [withdrawPhone, setWithdrawPhone] = useState('');
+  const [withdrawNetwork, setWithdrawNetwork] = useState('MTN');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [currentAccount, setCurrentAccount] = useState(depositAccounts[0]);
+  const [toast, setToast] = useState(null);
+  const [now, setNow] = useState(Date.now());
 
-  // Load user data from localStorage
+  const navigate = useNavigate();
+  const latestStateRef = useRef(null);
+
+  const showToast = (msg, type = 'info') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const rewardsRoadmap = [
+    { target: 2, type: 'Cash', reward: 'UGX 3,000', desc: 'Kickstart bonus' },
+    { target: 5, type: 'Cash', reward: 'UGX 10,000', desc: 'Standard tier bonus' },
+    { target: 10, type: 'Cash', reward: 'UGX 20,000', desc: 'Advanced milestone' },
+    { target: 15, type: 'Hardware', reward: 'Alpha Slim Powerbank', desc: 'Physical Class A device' },
+    { target: 20, type: 'Cash', reward: 'UGX 45,000', desc: 'Premium level bonus' },
+    { target: 25, type: 'Cash', reward: 'UGX 60,000', desc: 'High performance payout' },
+    { target: 40, type: 'Cash', reward: 'UGX 90,000', desc: 'Elite cash optimization' },
+    { target: 50, type: 'Cash', reward: 'UGX 130,000', desc: 'Ultimate affiliate tier' },
+    { target: 60, type: 'Hardware', reward: 'Quantum Base Powerbank', desc: 'Grand Master delivery' }
+  ];
+
+  const powerbankCatalog = {
+    A: [
+      { id: 'A-01', name: 'Class A - Machine 1', price: 2000, days: 1, classTier: 'A', desc: 'Cost 2,000. Get 3000 in 1 days.', imgColor: '#00FF66', profit: 1000, totalReturn: 3000 },
+      { id: 'A-02', name: 'Class A - Machine 2', price: 5000, days: 1, classTier: 'A', desc: 'Cost 5,000. Get 7500 in 1 days.', imgColor: '#00FF99', profit: 2500, totalReturn: 7500 },
+      { id: 'A-03', name: 'Class A - Machine 3', price: 10000, days: 1, classTier: 'A', desc: 'Cost 10,000. Get 15000 in 1 days.', imgColor: '#33FF66', profit: 5000, totalReturn: 15000 },
+      { id: 'A-04', name: 'Class A - Machine 4', price: 20000, days: 1, classTier: 'A', desc: 'Cost 20,000. Get 28000 in 1 days.', imgColor: '#107C41', profit: 8000, totalReturn: 28000 }
+    ]
+  };
+
+  const saveUserData = (newWallet, newBalance, newMachines, newTransactions, newClaimed, newPendingDeposits, newPendingWithdrawals) => {
+    const currentUser = user || latestStateRef.current?.user;
+    if (!currentUser?.id) return;
+
+    const snapshot = latestStateRef.current || {};
+    const updatedUser = {
+      ...currentUser,
+      walletBalance: newWallet !== undefined ? newWallet : snapshot.walletBalance ?? walletBalance,
+      balanceAccount: newBalance !== undefined ? newBalance : snapshot.balanceAccount ?? balanceAccount,
+      activeMachines: newMachines !== undefined ? newMachines : snapshot.activeMachines ?? activeMachines,
+      transactions: newTransactions !== undefined ? newTransactions : snapshot.transactions ?? transactions,
+      claimedMilestones: newClaimed !== undefined ? newClaimed : snapshot.claimedList ?? claimedList,
+      pendingDeposits: newPendingDeposits !== undefined ? newPendingDeposits : snapshot.pendingDeposits ?? pendingDeposits,
+      pendingWithdrawals: newPendingWithdrawals !== undefined ? newPendingWithdrawals : snapshot.pendingWithdrawals ?? pendingWithdrawals,
+      processedDepositIds: snapshot.processedDepositIds ?? processedDepositIds
+    };
+
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    localStorage.setItem(getUserStateStorageKey(currentUser.id), JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
+
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-      setWalletBalance(parsedUser.walletBalance || 0);
-      setBalanceAccount(parsedUser.balanceAccount || 0);
-      setReferrals(parsedUser.referrals || 0);
-      setActiveMachines(parsedUser.activeMachines || []);
-      setTransactions(parsedUser.transactions || []);
-      setPendingDeposits(parsedUser.pendingDeposits || []);
-      setPendingWithdrawals(parsedUser.pendingWithdrawals || []);
-      setClaimedMilestones(parsedUser.claimedMilestones || []);
+    latestStateRef.current = {
+      user,
+      walletBalance,
+      balanceAccount,
+      activeMachines,
+      transactions,
+      claimedList,
+      pendingDeposits,
+      pendingWithdrawals,
+      processedDepositIds
+    };
+  }, [user, walletBalance, balanceAccount, activeMachines, transactions, claimedList, pendingDeposits, pendingWithdrawals, processedDepositIds]);
 
-      // Generate referral link
-      const baseUrl = window.location.origin;
-      const link = `${baseUrl}/#/register?ref=${parsedUser.id}`;
-      setReferralLink(link);
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 100);
+    return () => clearInterval(interval);
+  }, []);
 
-      // Calculate referral commissions (20% of referral earnings)
-      const commissions = (parsedUser.referralCommissions || 0);
-      setReferralCommissions(commissions);
+  useEffect(() => {
+    const rotateDepositAccount = () => {
+      const minuteIndex = Math.floor(new Date().getMinutes() / 5) % depositAccounts.length;
+      setCurrentAccount(depositAccounts[minuteIndex]);
+    };
 
-      // Load referred users list
-      setReferredUsers(parsedUser.referredUsers || []);
-    } else {
-      navigate('/login');
+    rotateDepositAccount();
+    const interval = setInterval(rotateDepositAccount, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const completed = activeMachines.find((m) => {
+      const endTime = new Date(m.purchasedAt).getTime() + (m.days * 24 * 60 * 60 * 1000);
+      return Date.now() >= endTime && !m.claimed;
+    });
+
+    if (completed && !showCompletionModal) {
+      setCompletedMachine(completed);
+      setShowCompletionModal(true);
     }
+  }, [now, activeMachines, showCompletionModal]);
+
+  const processedIdsRef = useRef(processedDepositIds);
+  useEffect(() => {
+    processedIdsRef.current = processedDepositIds;
+  }, [processedDepositIds]);
+
+  useEffect(() => {
+    const checkApprovedDeposits = async () => {
+      if (!user) return;
+      try {
+        const res = await fetch(`${ADMIN_API}/api/transactions?userId=${user.id}&type=deposit&status=approved`);
+        if (!res.ok) return;
+        const approvedDeposits = await res.json();
+
+        approvedDeposits.forEach((ad) => {
+          const depositId = ad._id || ad.id;
+          if (!depositId || processedIdsRef.current.includes(depositId)) return;
+
+          const amount = Number(ad.amount);
+          const snapshot = latestStateRef.current || {};
+          const newWallet = (snapshot.walletBalance ?? walletBalance) + amount;
+          const nextTransactions = [{ id: `ADMIN-${depositId}`, type: 'Deposit', status: 'Approved', amount, date: new Date().toLocaleDateString() }, ...(snapshot.transactions ?? transactions)];
+          const nextProcessedDepositIds = [...(snapshot.processedDepositIds ?? processedDepositIds), depositId];
+          const nextPendingDeposits = (snapshot.pendingDeposits ?? pendingDeposits).map((pd) => {
+            if (pd.processed) return pd;
+            return { ...pd, processed: true, adminStatus: 'approved' };
+          });
+
+          setWalletBalance(newWallet);
+          setTransactions(nextTransactions);
+          setProcessedDepositIds(nextProcessedDepositIds);
+          setPendingDeposits(nextPendingDeposits);
+          saveUserData(newWallet, undefined, undefined, nextTransactions, undefined, nextPendingDeposits, undefined);
+          showToast(`✅ APPROVED your deposit of UGX ${amount.toLocaleString()}!`, 'success');
+        });
+      } catch {
+        // admin server may be offline
+      }
+    };
+
+    const interval = setInterval(checkApprovedDeposits, 8000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  useEffect(() => {
+    const checkApprovedWithdrawals = async () => {
+      if (!user) return;
+      try {
+        const res = await fetch(`${ADMIN_API}/api/transactions?userId=${user.id}&type=withdraw&status=approved`);
+        if (!res.ok) return;
+        const approvedWithdrawals = await res.json();
+
+        approvedWithdrawals.forEach((ad) => {
+          const withdrawalId = ad._id || ad.id || ad.withdrawal_id;
+          if (!withdrawalId) return;
+
+          const matchedPending = pendingWithdrawals.find((item) => String(item.id) === String(withdrawalId));
+          if (!matchedPending || matchedPending.processed) return;
+
+          const amount = Number(ad.amount || matchedPending.amount || 0);
+          const nextBalance = Math.max(0, (balanceAccount || 0) - amount);
+          const nextPendingWithdrawals = pendingWithdrawals.map((item) =>
+            String(item.id) === String(withdrawalId) ? { ...item, processed: true, adminStatus: 'approved' } : item
+          );
+          const nextTransactions = [{ id: `WTH-APP-${Date.now()}`, type: 'Withdraw', status: 'Approved', amount, date: new Date().toLocaleDateString() }, ...transactions];
+
+          setBalanceAccount(nextBalance);
+          setPendingWithdrawals(nextPendingWithdrawals);
+          setTransactions(nextTransactions);
+          saveUserData(undefined, nextBalance, undefined, nextTransactions, undefined, undefined, nextPendingWithdrawals);
+          showToast(`✅ Withdrawal of UGX ${amount.toLocaleString()} was approved by admin.`, 'success');
+        });
+      } catch {
+        // admin may be offline
+      }
+    };
+
+    const interval = setInterval(checkApprovedWithdrawals, 8000);
+    return () => clearInterval(interval);
+  }, [user, pendingWithdrawals, balanceAccount, transactions]);
+
+  useEffect(() => {
+    const rawUser = localStorage.getItem('user');
+    if (!rawUser) {
+      navigate('/login');
+      return;
+    }
+
+    let persistedUser;
+    try {
+      persistedUser = JSON.parse(rawUser);
+    } catch {
+      navigate('/login');
+      return;
+    }
+
+    const persistedState = getStoredUserState(persistedUser?.id) || persistedUser;
+
+    setUser(persistedUser);
+    setWalletBalance(persistedState.walletBalance || 0);
+    setBalanceAccount(persistedState.balanceAccount || 0);
+    setReferrals(persistedState.referrals || 0);
+    setClaimedList(persistedState.claimedMilestones || []);
+    setTransactions(persistedState.transactions || []);
+    setPendingDeposits((persistedState.pendingDeposits || []).map((pd) => ({ ...pd, processed: true })));
+    setPendingWithdrawals(persistedState.pendingWithdrawals || []);
+    setProcessedDepositIds(persistedState.processedDepositIds || []);
+    setActiveMachines((persistedState.activeMachines || []).map((m) => ({ ...m, purchasedAt: m.purchasedAt || new Date().toISOString(), claimed: m.claimed || false })));
   }, [navigate]);
 
+  const referralLink = user ? `${window.location.origin}/#/register?ref=${user.id}` : '';
+  const shareMessage = `Hey! Join this hardware energy app! Sign up here: ${referralLink}`;
+
+  const triggerDepositFlow = () => {
+    setShowPaymentModal(false);
+    setDepositAmount('');
+    setPaymentId('');
+    setCurrentView('coin_spin');
+    setTimeout(() => setCurrentView('deposit_guide'), 1200);
+  };
+
+  const triggerWithdrawFlow = () => {
+    setCurrentView('coin_spin');
+    setTimeout(() => setCurrentView('withdraw_portal'), 1200);
+  };
+
+  const handleTransactionIdChange = (value) => {
+    const cleaned = value.replace(/\D/g, '').slice(0, 14);
+    setPaymentId(cleaned);
+  };
+
+  const handlePaymentIdSubmit = async (e) => {
+    e.preventDefault();
+    const amount = Number(depositAmount);
+    const normalizedPaymentId = paymentId.trim();
+
+    if (!amount || amount <= 0) return showToast('❌ Enter a valid amount.', 'error');
+    if (!normalizedPaymentId) return showToast('❌ Enter the payment ID.', 'error');
+    if (!/^\d+$/.test(normalizedPaymentId)) return showToast('❌ Transaction ID must contain only numbers.', 'error');
+    if (normalizedPaymentId.length < 10 || normalizedPaymentId.length > 14) return showToast(`❌ Transaction ID must be between 10 and 14 digits for ${depositNetwork}.`, 'error');
+    if (!user?.id) return showToast('❌ You need to be logged in to submit a deposit.', 'error');
+
+    try {
+      const response = await fetch(`${ADMIN_API}/api/account/deposit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, amount, transactionId: normalizedPaymentId })
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || 'Deposit submission failed');
+
+      const newTxn = { id: `DEP-${Math.floor(1000 + Math.random() * 9000)}`, type: 'Deposit', status: 'Pending', amount, date: new Date().toLocaleDateString() };
+      const newTransactions = [newTxn, ...transactions];
+      const processedDeposit = { id: `SERVER-${Date.now()}`, amount, type: 'deposit', processed: false, adminStatus: 'pending', paymentId: normalizedPaymentId };
+      const newPendingDeposits = [...pendingDeposits, processedDeposit];
+
+      setTransactions(newTransactions);
+      setPendingDeposits(newPendingDeposits);
+      saveUserData(undefined, undefined, undefined, newTransactions, undefined, newPendingDeposits, undefined);
+
+      showToast('✅ Deposit submitted for admin verification.', 'success');
+      setDepositAmount('');
+      setPaymentId('');
+      setCurrentView('dashboard');
+    } catch (err) {
+      showToast(`❌ ${err.message}`, 'error');
+    }
+  };
+
+  const handleDepositNext = () => {
+    const amount = Number(depositAmount);
+    if (!amount || amount <= 0) return showToast('❌ Enter a valid amount.', 'error');
+    setShowPaymentModal(true);
+  };
+
+  const handleWithdrawAmountChange = (e) => {
+    const value = e.target.value;
+    setWithdrawAmount(value);
+    setReceiveAmount(Number(value) > 0 ? Number(value) * 0.92 : 0);
+  };
+
+  const handleWithdrawSubmit = async (e) => {
+    e.preventDefault();
+    const amt = Number(withdrawAmount);
+    if (!amt || amt <= 0) return showToast('❌ Enter a valid withdrawal amount.', 'error');
+    if (balanceAccount < amt) return showToast('❌ Insufficient Balance Account funds.', 'error');
+    if (!withdrawPhone.trim()) return showToast('❌ Enter your mobile money phone number.', 'error');
+
+    try {
+      const res = await fetch(`${ADMIN_API}/api/account/withdraw`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          username: user.username || 'Anonymous',
+          email: user.email || '',
+          amount: amt,
+          receive_amount: receiveAmount,
+          fee: amt * 0.08,
+          phone: withdrawPhone.trim(),
+          network: withdrawNetwork,
+          date: new Date().toISOString()
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const withdrawalId = data.withdrawal_id || data.id || `W-${Date.now()}`;
+
+        const newPendingWithdrawal = { id: withdrawalId, amount: amt, type: 'withdraw', processed: false, adminStatus: 'pending' };
+        const newPendingWithdrawals = [...pendingWithdrawals, newPendingWithdrawal];
+        const newTxn = { id: `WTH-PEND-${Math.floor(1000 + Math.random() * 9000)}`, type: 'Withdraw', status: 'Pending', amount: amt, date: new Date().toLocaleDateString() };
+        const newTransactions = [newTxn, ...transactions];
+
+        setPendingWithdrawals(newPendingWithdrawals);
+        setTransactions(newTransactions);
+        saveUserData(undefined, balanceAccount, undefined, newTransactions, undefined, undefined, newPendingWithdrawals);
+
+        showToast('⏳ Withdrawal submitted for admin approval. Amount remains in Balance Account until approved.', 'info');
+        setWithdrawAmount('');
+        setReceiveAmount(0);
+        setCurrentView('dashboard');
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        showToast(`❌ ${errData.message || 'Failed to submit withdrawal.'}`, 'error');
+      }
+    } catch {
+      showToast('❌ Cannot reach the backend server. Please try again later.', 'error');
+    }
+  };
+
+  const hasActiveMachine = (productId) => activeMachines.some((m) => {
+    const endTime = new Date(m.purchasedAt).getTime() + (m.days * 24 * 60 * 60 * 1000);
+    return m.productId === productId && Date.now() < endTime && !m.claimed;
+  });
+
+  const initiatePurchaseSequence = (product) => {
+    if (hasActiveMachine(product.id)) {
+      return showToast('❌ Machine Locked! You already leased this machine.', 'error');
+    }
+    if (walletBalance < product.price) return showToast('❌ Insufficient Wallet funds.', 'error');
+    setSelectedProductToBuy(product);
+    setShowConfirmModal(true);
+  };
+
+  const executeConfirmedPurchase = () => {
+    setShowConfirmModal(false);
+    if (!selectedProductToBuy) return;
+
+    const product = selectedProductToBuy;
+    const newWallet = walletBalance - product.price;
+    const newMachine = {
+      id: product.id + '-' + Date.now(),
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      days: product.days,
+      classTier: product.classTier || 'A',
+      purchasedAt: new Date().toISOString(),
+      claimed: false,
+      profit: calculateProfit(product.price, product.classTier || 'A'),
+      totalReturn: calculateTotalReturn(product.price, product.classTier || 'A')
+    };
+
+    const updatedMachines = [...activeMachines, newMachine];
+    setActiveMachines(updatedMachines);
+    setWalletBalance(newWallet);
+
+    const newTxn = { id: `FLEET-${Math.floor(1000 + Math.random() * 9000)}`, type: 'Purchase', status: 'Success', amount: product.price, date: new Date().toLocaleDateString() };
+    const newTransactions = [newTxn, ...transactions];
+    setTransactions(newTransactions);
+    saveUserData(newWallet, undefined, updatedMachines, newTransactions);
+
+    showToast(`🎉 ${product.name} is now deployed! Profit goes to Balance Account when complete.`, 'success');
+    setSelectedProductToBuy(null);
+  };
+
+  const claimCompletedMachine = () => {
+    if (!completedMachine) return;
+    const newBalance = balanceAccount + completedMachine.totalReturn;
+    setBalanceAccount(newBalance);
+    const updatedMachines = activeMachines.map((m) => (m.id === completedMachine.id ? { ...m, claimed: true } : m));
+    setActiveMachines(updatedMachines);
+
+    const newTxn = { id: `PROFIT-${Math.floor(1000 + Math.random() * 9000)}`, type: 'Profit', status: 'Verified', amount: completedMachine.totalReturn, date: new Date().toLocaleDateString() };
+    const newTransactions = [newTxn, ...transactions];
+    setTransactions(newTransactions);
+    saveUserData(undefined, newBalance, updatedMachines, newTransactions);
+
+    showToast(`🎉 UGX ${completedMachine.totalReturn.toLocaleString()} claimed to Balance Account!`, 'success');
+    setShowCompletionModal(false);
+    setCompletedMachine(null);
+  };
+
+  function getMachineCountdown(machine) {
+    const endTime = new Date(machine.purchasedAt).getTime() + (machine.days * 24 * 60 * 60 * 1000);
+    const remaining = endTime - Date.now();
+    if (remaining <= 0) return { completed: true, display: '✅ Completed!', progress: 100 };
+
+    const totalSecs = Math.floor(remaining / 1000);
+    const days = Math.floor(totalSecs / (24 * 60 * 60));
+    const hours = Math.floor((totalSecs % (24 * 60 * 60)) / (60 * 60));
+    const mins = Math.floor((totalSecs % (60 * 60)) / 60);
+    const secs = totalSecs % 60;
+
+    return {
+      completed: false,
+      display: `${days}d ${hours.toString().padStart(2, '0')}h ${mins.toString().padStart(2, '0')}m ${secs.toString().padStart(2, '0')}s`,
+      progress: ((machine.days * 24 * 60 * 60 * 1000 - remaining) / (machine.days * 24 * 60 * 60 * 1000)) * 100
+    };
+  }
+
+  function getTransactionMeta(txn) {
+    const isPending = txn.status === 'Pending';
+    const isApproved = txn.status === 'Approved' || txn.status === 'Verified';
+    const isRejected = txn.status === 'Rejected';
+    let label = 'Transaction';
+    let sign = '-';
+    let color = '#888';
+
+    if (txn.type === 'Profit') {
+      label = '📈 Profit';
+      sign = '+';
+      color = '#00FF66';
+    } else if (txn.type === 'Deposit') {
+      if (isPending) {
+        label = '⏳ Deposit Pending';
+        sign = '⏳';
+        color = '#FFD700';
+      } else if (isApproved) {
+        label = '💸 Deposit Approved';
+        sign = '+';
+        color = '#00FF66';
+      } else if (isRejected) {
+        label = '❌ Deposit Rejected';
+        sign = '✕';
+        color = '#ff4444';
+      }
+    } else if (txn.type === 'Withdraw') {
+      if (isPending) {
+        label = '⏳ Withdraw Pending';
+        sign = '⏳';
+        color = '#FFD700';
+      } else if (isApproved) {
+        label = '📤 Withdraw Sent';
+        sign = '✓';
+        color = '#00BCFF';
+      } else if (isRejected) {
+        label = '↩ Withdraw Refunded';
+        sign = '↩';
+        color = '#ff4444';
+      }
+    } else if (txn.type === 'Purchase') {
+      label = '🛒 Purchase';
+      sign = '-';
+      color = '#ff4444';
+    }
+
+    return { label, sign, color };
+  }
+
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(referralLink).then(() => {
-      setShowAlert({
-        type: 'success',
-        title: 'Copied!',
-        message: 'Referral link copied to clipboard'
-      });
-      setTimeout(() => setShowAlert(null), 3000);
-    }).catch(() => {
-      setShowAlert({
-        type: 'error',
-        title: 'Failed',
-        message: 'Could not copy link'
-      });
-      setTimeout(() => setShowAlert(null), 3000);
-    });
+    navigator.clipboard.writeText(referralLink);
+    showToast('📋 Link copied!', 'success');
+  };
+
+  const shareOnWhatsApp = () => {
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage)}`, '_blank');
+  };
+
+  const handleClaimReward = (targetCount) => {
+    if (claimedList.includes(targetCount)) {
+      return showToast('✅ Reward already claimed.', 'info');
+    }
+    const rewardAmounts = { 2: 3000, 5: 10000, 10: 20000, 15: 0, 20: 45000, 25: 60000, 40: 90000, 50: 130000, 60: 0 };
+    const amount = rewardAmounts[targetCount] ?? 0;
+    const newWallet = walletBalance + amount;
+    const newClaimed = [...claimedList, targetCount];
+    setWalletBalance(newWallet);
+    setClaimedList(newClaimed);
+    saveUserData(newWallet, undefined, undefined, undefined, newClaimed);
+
+    if (amount > 0) {
+      showToast(`✅ Reward claimed! UGX ${amount.toLocaleString()} added to Wallet!`, 'success');
+    } else {
+      showToast('✅ Milestone reached! Contact admin for your special reward.', 'success');
+    }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
     localStorage.removeItem('user');
-    if (user?.id) {
-      localStorage.removeItem(getUserStateStorageKey(user.id));
-    }
+    localStorage.removeItem('token');
     navigate('/login');
   };
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'KES',
-      minimumFractionDigits: 2
-    }).format(value || 0);
+  const ToastBar = () => {
+    if (!toast) return null;
+    const bgColor = toast.type === 'success' ? '#00FF66' : toast.type === 'error' ? '#ff4444' : '#FFD700';
+    const textColor = toast.type === 'success' ? '#000' : '#fff';
+    return (
+      <div style={{
+        position: 'fixed', top: '80px', left: '20px', right: '20px', zIndex: 9999,
+        backgroundColor: bgColor, color: textColor, padding: '14px 18px',
+        borderRadius: '8px', fontWeight: 'bold', fontSize: '13px',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+        animation: 'fadeIn 0.3s ease',
+        maxWidth: '400px', margin: '0 auto', textAlign: 'center'
+      }}>
+        {toast.msg}
+      </div>
+    );
   };
 
-  if (!user) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#000', color: '#fff' }}>Loading...</div>;
+  if (currentView === 'coin_spin') {
+    return (
+      <div style={{ backgroundColor: '#000000', height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+        <style>{`@keyframes spinGoldCoin { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }`}</style>
+        <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#00FF66', border: '5px solid #00AA44', display: 'flex', justifyContent: 'center', alignItems: 'center', animation: 'spinGoldCoin 1.2s linear infinite' }}>
+          <span style={{ fontSize: '32px' }}>🪙</span>
+        </div>
+        <h3 style={{ color: '#00FF66', marginTop: '20px', fontFamily: 'sans-serif', letterSpacing: '1px', fontSize: '14px' }}>PROCESSING...</h3>
+      </div>
+    );
+  }
+
+  if (currentView === 'deposit_guide') {
+    return (
+      <div style={{ backgroundColor: '#000000', minHeight: '100vh', color: '#ffffff', fontFamily: 'sans-serif', padding: '20px', boxSizing: 'border-box' }}>
+        <ToastBar />
+        <button onClick={() => setCurrentView('dashboard')} style={{ backgroundColor: '#111', border: '1px solid #333', color: '#00FF66', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer' }}>
+          ← Back
+        </button>
+        <h2 style={{ color: '#00FF66', marginTop: 0 }}>DEPOSIT FUNDS</h2>
+        <div style={{ backgroundColor: '#111', padding: '16px', borderRadius: '10px', border: '2px solid #00FF66', marginBottom: '20px' }}>
+          <span style={{ fontSize: '11px', color: '#00FF66', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>SEND MONEY TO</span>
+          <div style={{ fontSize: '14px' }}>
+            <span style={{ color: '#888' }}>Account:</span> <strong style={{ color: '#fff' }}>{currentAccount.number}</strong><br />
+            <span style={{ color: '#888' }}>Name:</span> <strong style={{ color: '#fff' }}>{currentAccount.name}</strong>
+          </div>
+          <div style={{ marginTop: '10px', backgroundColor: '#1a1400', border: '1px solid #ffcc00', color: '#ffcc00', padding: '10px', borderRadius: '6px', fontSize: '12px', lineHeight: 1.4 }}>
+            This number changes every 5 minutes. Please only send money to the active number currently shown on your screen.
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
+          <button onClick={() => setDepositNetwork('MTN')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: depositNetwork === 'MTN' ? '#00FF66' : '#111', color: depositNetwork === 'MTN' ? '#000' : '#fff' }}>MTN</button>
+          <button onClick={() => setDepositNetwork('Airtel')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: depositNetwork === 'Airtel' ? '#00FF66' : '#111', color: depositNetwork === 'Airtel' ? '#000' : '#fff' }}>Airtel</button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div>
+            <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>💰 AMOUNT SENT (UGX)</label>
+            <input type="number" placeholder="e.g. 50000" required min="1" value={depositAmount} onChange={(e) => setDepositAmount(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', borderRadius: '6px', backgroundColor: '#111', border: '1px solid #222', color: '#fff' }} />
+          </div>
+          <div style={{ backgroundColor: '#0a1f12', border: '1px solid #FFD700', borderRadius: '6px', padding: '12px', fontSize: '12px', color: '#aaa', textAlign: 'center' }}>
+            ⏳ After sending the money, click Next and enter your transaction ID in the popup window.
+          </div>
+          <button type="button" onClick={handleDepositNext} style={{ backgroundColor: '#00FF66', color: '#000', border: 'none', padding: '14px', borderRadius: '6px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>Next</button>
+        </div>
+
+        {showPaymentModal && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 5000, padding: '20px' }}>
+            <div style={{ backgroundColor: '#111', border: '2px solid #00FF66', borderRadius: '12px', width: '100%', maxWidth: '420px', padding: '25px', boxSizing: 'border-box' }}>
+              <h3 style={{ margin: '0 0 10px 0', color: '#00FF66', fontSize: '18px' }}>ENTER PAYMENT ID</h3>
+              <p style={{ color: '#ccc', fontSize: '13px', margin: '0 0 20px 0' }}>
+                Amount: <strong style={{ color: '#fff' }}>UGX {depositAmount ? Number(depositAmount).toLocaleString() : '0'}</strong>
+              </p>
+              <form onSubmit={handlePaymentIdSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div>
+                  <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>🔑 TRANSACTION ID</label>
+                  <input type="text" inputMode="numeric" pattern="[0-9]*" placeholder="10-14 digit mobile money transaction ID" required value={paymentId} onChange={(e) => handleTransactionIdChange(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', borderRadius: '6px', backgroundColor: '#111', border: '1px solid #222', color: '#fff' }} />
+                </div>
+                <div style={{ backgroundColor: '#0a1f12', border: '1px solid #FFD700', borderRadius: '6px', padding: '12px', fontSize: '12px', color: '#aaa', textAlign: 'center' }}>
+                  ⏳ Your deposit will be sent to admin for verification. ID must be 10–14 digits only.
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <button type="button" onClick={() => setShowPaymentModal(false)} style={{ backgroundColor: '#222', color: '#888', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                  <button type="submit" style={{ backgroundColor: '#00FF66', color: '#000', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Submit</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (currentView === 'withdraw_portal') {
+    return (
+      <div style={{ backgroundColor: '#000000', minHeight: '100vh', color: '#ffffff', fontFamily: 'sans-serif', padding: '20px' }}>
+        <ToastBar />
+        <button onClick={() => { setCurrentView('dashboard'); setWithdrawAmount(''); }} style={{ backgroundColor: '#111', border: '1px solid #333', color: '#ff4444', padding: '8px 15px', borderRadius: '5px', cursor: 'pointer' }}>
+          ← Back
+        </button>
+        <h2 style={{ color: '#ff4444', marginTop: 0 }}>WITHDRAW FUNDS</h2>
+        <div style={{ backgroundColor: '#0a0a0a', border: '2px solid #00BCFF', padding: '15px', borderRadius: '8px', marginBottom: '15px', fontSize: '13px', color: '#aaa' }}>
+          ⚖️ Balance Account: <strong style={{ color: '#00BCFF' }}>UGX {balanceAccount.toLocaleString()}</strong><br />
+          <span style={{ fontSize: '11px' }}>8% fee applies. Admin approval required.</span>
+        </div>
+        <form onSubmit={handleWithdrawSubmit} style={{ backgroundColor: '#0a0a0a', border: '2px solid #ff4444', padding: '20px', borderRadius: '10px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div>
+            <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>AMOUNT (UGX)</label>
+            <input type="number" placeholder="e.g. 20000" required value={withdrawAmount} onChange={handleWithdrawAmountChange} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', borderRadius: '6px', backgroundColor: '#111', border: '1px solid #222', color: '#fff' }} />
+          </div>
+          <div style={{ backgroundColor: '#111', padding: '15px', borderRadius: '6px', border: '1px solid #222' }}>
+            <span style={{ fontSize: '12px', color: '#ff4444', fontWeight: 'bold' }}>YOU RECEIVE (after 8% fee):</span>
+            <div style={{ fontSize: '24px', color: '#00FF66', fontWeight: 'bold', marginTop: '6px' }}>UGX {receiveAmount.toLocaleString()}</div>
+          </div>
+          <div>
+            <label style={{ display: 'block', color: '#aaa', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>📱 MOBILE MONEY PHONE</label>
+            <input type="tel" placeholder="e.g. 0760704907" required value={withdrawPhone} onChange={(e) => setWithdrawPhone(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '14px', borderRadius: '6px', backgroundColor: '#111', border: '1px solid #222', color: '#fff' }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <button type="button" onClick={() => setWithdrawNetwork('MTN')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: withdrawNetwork === 'MTN' ? '#00BCFF' : '#111', color: '#fff' }}>MTN</button>
+            <button type="button" onClick={() => setWithdrawNetwork('Airtel')} style={{ padding: '12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: withdrawNetwork === 'Airtel' ? '#00BCFF' : '#111', color: '#fff' }}>Airtel</button>
+          </div>
+          <div style={{ backgroundColor: '#1a0a0a', border: '1px solid #ff4444', borderRadius: '6px', padding: '12px', fontSize: '12px', color: '#aaa', textAlign: 'center' }}>
+            ⏳ Amount will be frozen in Balance Account and sent to admin for approval. You'll be notified when processed.
+          </div>
+          <button type="submit" style={{ backgroundColor: '#ff4444', color: '#fff', border: 'none', padding: '14px', borderRadius: '6px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>Withdraw</button>
+        </form>
+      </div>
+    );
+  }
+
+  if (showCompletionModal && completedMachine) {
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 5000, padding: '20px' }}>
+        <div style={{ backgroundColor: '#0a0a0a', border: '2px solid #FFD700', borderRadius: '12px', width: '100%', maxWidth: '380px', padding: '30px', boxSizing: 'border-box', textAlign: 'center' }}>
+          <div style={{ fontSize: '48px', marginBottom: '15px' }}>🎉</div>
+          <h2 style={{ color: '#FFD700', margin: '0 0 10px 0' }}>MACHINE COMPLETED!</h2>
+          <p style={{ color: '#ccc', fontSize: '14px', marginBottom: '15px' }}><strong>{completedMachine.name}</strong> finished!</p>
+          <div style={{ backgroundColor: '#111', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
+            <div style={{ color: '#888', fontSize: '12px', marginBottom: '5px' }}>GOES TO BALANCE ACCOUNT</div>
+            <div style={{ color: '#00FF66', fontSize: '28px', fontWeight: 'bold' }}>UGX {completedMachine.totalReturn.toLocaleString()}</div>
+            <div style={{ color: '#666', fontSize: '11px', marginTop: '5px' }}>
+              Cost: UGX {completedMachine.price.toLocaleString()} + Profit: UGX {completedMachine.profit.toLocaleString()}
+            </div>
+          </div>
+          <button onClick={claimCompletedMachine} style={{ backgroundColor: '#FFD700', color: '#000', border: 'none', padding: '14px 30px', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>
+            🚀 CLAIM UGX {completedMachine.totalReturn.toLocaleString()}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div style={{ backgroundColor: isDarkMode ? '#000' : '#fff', minHeight: '100vh', color: isDarkMode ? '#fff' : '#000', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      {/* Header */}
-      <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#f8f9fa', borderBottom: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '24px', color: isDarkMode ? '#00FF66' : '#107C41' }}>TERMINAL</h1>
-          <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666' }}>Welcome, {user.username}</p>
+    <div style={{ backgroundColor: isDarkMode ? '#000000' : '#f8f9fa', minHeight: '100vh', color: isDarkMode ? '#ffffff' : '#212529', fontFamily: 'sans-serif', display: 'flex', flexDirection: 'column' }}>
+      <ToastBar />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderBottom: isDarkMode ? '1px solid #111' : '1px solid #dfe3e8' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <button onClick={() => setIsMenuOpen(!isMenuOpen)} style={{ background: 'none', border: 'none', color: isDarkMode ? '#00FF66' : '#107C41', fontSize: '24px', cursor: 'pointer', fontWeight: 'bold' }}>☰</button>
+          <span style={{ fontWeight: 'bold', fontSize: '18px', color: isDarkMode ? '#fff' : '#212529' }}>Connect</span>
+          <button onClick={() => setIsDarkMode(!isDarkMode)} style={{ background: 'none', border: 'none', fontSize: '16px', cursor: 'pointer' }}>{isDarkMode ? '☀️' : '🌙'}</button>
         </div>
-        <button onClick={() => setIsDarkMode(!isDarkMode)} style={{ padding: '8px 16px', backgroundColor: isDarkMode ? '#111' : '#e9ecef', border: 'none', borderRadius: '6px', color: isDarkMode ? '#00FF66' : '#107C41', cursor: 'pointer', fontWeight: 'bold' }}>
-          {isDarkMode ? '☀️' : '🌙'} Theme
-        </button>
-        <button onClick={handleLogout} style={{ padding: '8px 16px', backgroundColor: '#ff4444', border: 'none', borderRadius: '6px', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}>
-          Logout
-        </button>
+        <span style={{ fontSize: '14px', fontWeight: 'bold', color: isDarkMode ? '#00FF66' : '#107C41' }}>Hi, {user?.username || 'user'}</span>
       </div>
 
-      {/* Alert */}
-      {showAlert && (
-        <div style={{ backgroundColor: showAlert.type === 'success' ? 'rgba(0, 255, 102, 0.1)' : 'rgba(255, 68, 68, 0.1)', border: `1px solid ${showAlert.type === 'success' ? '#00FF66' : '#ff4444'}`, color: showAlert.type === 'success' ? '#00FF66' : '#ff4444', padding: '12px 20px', margin: '10px 20px', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <strong>{showAlert.title}</strong>: {showAlert.message}
+      {isMenuOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 6000, display: 'flex' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} onClick={() => setIsMenuOpen(false)} />
+          <div style={{ position: 'relative', width: '280px', height: '100%', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderRight: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '20px', boxSizing: 'border-box' }}>
+            <button onClick={() => setIsMenuOpen(false)} style={{ position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', color: '#888', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>✕</button>
+            <h3 style={{ margin: '15px 0 5px 0', color: isDarkMode ? '#00FF66' : '#107C41', borderBottom: '1px solid #222', paddingBottom: '10px', fontSize: '18px' }}>Menu</h3>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '18px', fontSize: '14px', fontWeight: '500' }}>
+              <li><a href="#profile" onClick={() => setIsMenuOpen(false)} style={{ textDecoration: 'none', color: isDarkMode ? '#eee' : '#333' }}>👤 My Profile</a></li>
+              <li><a href="#terms" onClick={() => setIsMenuOpen(false)} style={{ textDecoration: 'none', color: isDarkMode ? '#eee' : '#333' }}>📄 Terms & Conditions</a></li>
+              <li><a href="#privacy" onClick={() => setIsMenuOpen(false)} style={{ textDecoration: 'none', color: isDarkMode ? '#eee' : '#333' }}>🛡️ Privacy Policy</a></li>
+              <li><a href="#support" onClick={() => setIsMenuOpen(false)} style={{ textDecoration: 'none', color: isDarkMode ? '#eee' : '#333' }}>ℹ️ Help & Support</a></li>
+              <li style={{ borderTop: '1px solid #222', paddingTop: '15px', color: '#ff4444', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => { setIsMenuOpen(false); handleLogout(); }}>🚪 Logout</li>
+            </ul>
           </div>
-          <button onClick={() => setShowAlert(null)} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '18px' }}>✕</button>
         </div>
       )}
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', backgroundColor: isDarkMode ? '#0a0a0a' : '#f8f9fa' }}>
-        {['overview', 'machines', 'transactions', 'deposits', 'withdrawals', 'rewards'].map((tab) => (
-          <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '12px 20px', border: 'none', backgroundColor: activeTab === tab ? (isDarkMode ? '#111' : '#e9ecef') : 'transparent', color: activeTab === tab ? '#00FF66' : '#666', cursor: 'pointer', fontWeight: activeTab === tab ? 'bold' : 'normal', textTransform: 'uppercase', fontSize: '12px' }}>
-            {tab}
-          </button>
-        ))}
-      </div>
+      {showConfirmModal && selectedProductToBuy && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 5000, padding: '20px' }}>
+          <div style={{ backgroundColor: '#0a0a0a', border: '2px solid #00FF66', borderRadius: '12px', width: '100%', maxWidth: '360px', padding: '25px', boxSizing: 'border-box' }}>
+            <h3 style={{ margin: '0 0 10px 0', color: '#00FF66', fontSize: '18px' }}>CONFIRM PURCHASE</h3>
+            <p style={{ color: '#ccc', fontSize: '14px', marginBottom: '20px' }}>
+              Lease <strong>{selectedProductToBuy.name}</strong> for <strong>UGX {selectedProductToBuy.price.toLocaleString()}</strong> from Wallet?
+            </p>
+            <div style={{ backgroundColor: '#111', padding: '12px', borderRadius: '6px', marginBottom: '15px', borderLeft: '4px solid #00FF66' }}>
+              <div style={{ color: '#aaa', fontSize: '12px' }}>
+                Class A · {selectedProductToBuy.days} days
+                <div style={{ marginTop: '8px', color: '#ddd' }}>
+                  Projected return → <strong style={{ color: '#00FF66' }}>UGX {getProductTotalReturn(selectedProductToBuy).toLocaleString()}</strong>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <button onClick={() => { setShowConfirmModal(false); setSelectedProductToBuy(null); }} style={{ backgroundColor: '#222', color: '#888', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={executeConfirmedPurchase} style={{ backgroundColor: '#00FF66', color: '#000', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {/* Content */}
-      <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-        {activeTab === 'overview' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-            <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '20px', borderRadius: '12px' }}>
-              <p style={{ margin: '0 0 10px 0', color: '#888', fontSize: '12px', fontWeight: 'bold' }}>WALLET BALANCE</p>
-              <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#00FF66' }}>{formatCurrency(walletBalance)}</div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px', paddingBottom: '90px' }}>
+        {activeTab === 'home' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+            <div style={{ background: isDarkMode ? 'linear-gradient(135deg, #111, #051a0e)' : 'linear-gradient(135deg, #fff, #e8f5e9)', padding: '25px', borderRadius: '12px', border: isDarkMode ? '1px solid #00FF66' : '1px solid #107C41' }}>
+              <p style={{ margin: 0, color: '#aaa', fontSize: '14px', fontWeight: 'bold' }}>TOTAL PORTFOLIO</p>
+              <h1 style={{ margin: '12px 0 0 0', color: isDarkMode ? '#fff' : '#212529', fontSize: '38px', fontWeight: 'bold' }}>UGX {(walletBalance + balanceAccount).toLocaleString()}</h1>
             </div>
-            <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '20px', borderRadius: '12px' }}>
-              <p style={{ margin: '0 0 10px 0', color: '#888', fontSize: '12px', fontWeight: 'bold' }}>BALANCE ACCOUNT</p>
-              <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#00d9ff' }}>{formatCurrency(balanceAccount)}</div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <div style={{ padding: '18px', backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #00FF66' : '1px solid #107C41', borderRadius: '10px' }}>
+                <p style={{ margin: 0, color: '#888', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>💼 Wallet</p>
+                <h2 style={{ margin: '8px 0 0 0', color: isDarkMode ? '#fff' : '#212529', fontSize: '22px' }}>UGX {walletBalance.toLocaleString()}</h2>
+                <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '10px' }}>Approved deposits • Rewards</p>
+              </div>
+              <div style={{ padding: '18px', backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #00BCFF' : '1px solid #00BCFF', borderRadius: '10px' }}>
+                <p style={{ margin: 0, color: '#888', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>⚖️ Balance</p>
+                <h2 style={{ margin: '8px 0 0 0', color: '#00BCFF', fontSize: '22px' }}>UGX {balanceAccount.toLocaleString()}</h2>
+                <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '10px' }}>Machine profits • Withdrawals</p>
+              </div>
             </div>
-            <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '20px', borderRadius: '12px' }}>
-              <p style={{ margin: '0 0 10px 0', color: '#888', fontSize: '12px', fontWeight: 'bold' }}>REFERRAL COMMISSIONS (20%)</p>
-              <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#FFD700' }}>{formatCurrency(referralCommissions)}</div>
+
+            {(pendingDeposits.some((p) => !p.processed) || pendingWithdrawals.some((p) => !p.processed)) && (
+              <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #FFD700', borderRadius: '8px', padding: '14px', fontSize: '12px', color: '#aaa' }}>
+                <span style={{ color: '#FFD700', fontWeight: 'bold' }}>⏳ PENDING APPROVALS</span>
+                {pendingDeposits.filter((p) => !p.processed).length > 0 && (
+                  <div style={{ marginTop: '6px' }}>💸 {pendingDeposits.filter((p) => !p.processed).length} deposit(s) waiting for admin</div>
+                )}
+                {pendingWithdrawals.filter((p) => !p.processed).length > 0 && (
+                  <div style={{ marginTop: '4px' }}>📤 {pendingWithdrawals.filter((p) => !p.processed).length} withdrawal(s) waiting for admin</div>
+                )}
+              </div>
+            )}
+
+            <div>
+              <h4 style={{ color: '#aaa', margin: '0 0 12px 0', fontSize: '13px', fontWeight: 'bold' }}>ACTIONS</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <button onClick={triggerDepositFlow} style={{ backgroundColor: isDarkMode ? '#111' : '#fff', border: isDarkMode ? '2px solid #00FF66' : '2px solid #107C41', color: isDarkMode ? '#00FF66' : '#107C41', padding: '18px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>💸 Deposit</button>
+                <button onClick={triggerWithdrawFlow} style={{ backgroundColor: isDarkMode ? '#111' : '#fff', border: '2px solid #ff4444', color: '#ff4444', padding: '18px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>💳 Withdraw</button>
+              </div>
             </div>
-            <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '20px', borderRadius: '12px' }}>
-              <p style={{ margin: '0 0 10px 0', color: '#888', fontSize: '12px', fontWeight: 'bold' }}>ACTIVE REFERRALS</p>
-              <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#FF6B9D' }}>{referrals}</div>
+
+            <div>
+              <h4 style={{ color: '#aaa', margin: '0 0 12px 0', fontSize: '13px', fontWeight: 'bold' }}>RECENT TRANSACTIONS</h4>
+              {transactions.length === 0 ? (
+                <p style={{ color: '#666', fontSize: '13px', textAlign: 'center', padding: '20px' }}>No transactions yet</p>
+              ) : (
+                transactions.slice(0, 15).map((txn, i) => {
+                  const { label, sign, color } = getTransactionMeta(txn);
+                  return (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #111' : '1px solid #e9ecef', borderRadius: '8px', marginBottom: '10px' }}>
+                      <div>
+                        <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', color: isDarkMode ? '#fff' : '#212529' }}>{label}</span>
+                        <span style={{ fontSize: '10px', color: '#666' }}>{txn.id}</span>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', color }}>{sign} UGX {txn.amount.toLocaleString()}</span>
+                        <span style={{ fontSize: '10px', color: '#666' }}>{txn.date}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         )}
 
-        {activeTab === 'machines' && (
+        {activeTab === 'buy' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <h3 style={{ color: isDarkMode ? '#00FF66' : '#107C41', marginTop: 0 }}>ACTIVE MACHINES</h3>
+            <h3 style={{ color: isDarkMode ? '#00FF66' : '#107C41', margin: '0' }}>LEASE MACHINES</h3>
+            <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', padding: '12px', borderRadius: '8px', border: '1px solid #00BCFF', fontSize: '13px', color: '#aaa' }}>
+              ⚖️ Balance Account: <strong style={{ color: '#00BCFF' }}>UGX {balanceAccount.toLocaleString()}</strong><br />
+              💼 Wallet: <strong style={{ color: '#00FF66' }}>UGX {walletBalance.toLocaleString()}</strong> (used for leasing machines)
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px', marginBottom: '10px' }}>
+              <button onClick={() => setSelectedClass('A')} style={{ padding: '10px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: selectedClass === 'A' ? '#00FF66' : '#111', color: selectedClass === 'A' ? '#000' : '#fff' }}>Class A</button>
+            </div>
+            {powerbankCatalog[selectedClass].map((product) => {
+              const totalReturn = getProductTotalReturn(product);
+              const profit = getProductProfit(product);
+              const hasActive = hasActiveMachine(product.id);
+              const canBuy = !hasActive && walletBalance >= product.price;
+
+              return (
+                <div key={product.id} style={{ display: 'flex', backgroundColor: isDarkMode ? '#111' : '#fff', borderRadius: '10px', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', overflow: 'hidden' }}>
+                  <div style={{ width: '25%', backgroundColor: isDarkMode ? '#1a1a1a' : '#f1f3f5', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px' }}>
+                    <PowerbankGraphic accentColor={product.imgColor} />
+                  </div>
+                  <div style={{ width: '75%', padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <span style={{ fontWeight: 'bold', color: isDarkMode ? '#fff' : '#212529', fontSize: '14px' }}>{product.name}</span>
+                        <span style={{ color: isDarkMode ? '#00FF66' : '#107C41', fontWeight: 'bold', fontSize: '13px' }}>UGX {product.price.toLocaleString()}</span>
+                      </div>
+                      <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '11px' }}>{product.desc}</p>
+                      <div style={{ marginTop: '3px', fontSize: '11px', fontWeight: 'bold', color: '#00FF66' }}>
+                        Return: UGX {totalReturn.toLocaleString()} (+UGX {profit.toLocaleString()})
+                      </div>
+                    </div>
+                    <button onClick={() => initiatePurchaseSequence(product)} disabled={!canBuy} style={{ alignSelf: 'flex-end', backgroundColor: !canBuy ? '#333' : (isDarkMode ? '#00FF66' : '#107C41'), color: !canBuy ? '#aaa' : '#000', border: 'none', padding: '8px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: !canBuy ? 'not-allowed' : 'pointer', marginTop: '10px' }}>
+                      {hasActive ? '🔒 Locked' : !canBuy ? 'Need Wallet' : 'Lease'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {activeTab === 'activity' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ borderBottom: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', paddingBottom: '10px' }}>
+              <h3 style={{ color: isDarkMode ? '#00FF66' : '#107C41', margin: 0 }}>ACTIVE MACHINES</h3>
+              <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: '12px' }}>Live countdown · Profits go to Balance Account</p>
+            </div>
             {activeMachines.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>No active machines</div>
+              <div style={{ textAlign: 'center', padding: '40px 20px', backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', borderRadius: '8px', border: isDarkMode ? '1px dashed #222' : '1px dashed #dee2e6' }}>
+                <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>No machines yet.</p>
+                <p style={{ margin: '8px 0 0 0', color: '#888', fontSize: '12px' }}>Go to Lease tab to buy one.</p>
+              </div>
             ) : (
-              activeMachines.map((machine, idx) => (
-                <div key={idx} style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '15px', borderRadius: '8px' }}>
-                  <p style={{ margin: '0 0 8px 0', fontWeight: 'bold' }}>Machine {idx + 1}</p>
-                  <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#888' }}>Product: {machine.productId}</p>
-                  <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#888' }}>Days: {machine.days}</p>
-                  <p style={{ margin: '0', fontSize: '12px', color: machine.claimed ? '#ff4444' : '#00FF66' }}>Status: {machine.claimed ? 'Claimed' : 'Active'}</p>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {activeTab === 'transactions' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <h3 style={{ color: isDarkMode ? '#00FF66' : '#107C41', marginTop: 0 }}>TRANSACTIONS</h3>
-            {transactions.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>No transactions</div>
-            ) : (
-              transactions.map((tx, idx) => (
-                <div key={idx} style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '15px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between' }}>
-                  <div>
-                    <p style={{ margin: '0 0 4px 0', fontWeight: 'bold' }}>{tx.type}</p>
-                    <p style={{ margin: '0', fontSize: '12px', color: '#888' }}>{new Date(tx.date).toLocaleDateString()}</p>
+              activeMachines.map((mach, idx) => {
+                const countdown = getMachineCountdown(mach);
+                const profit = mach.profit || calculateProfit(mach.price, mach.classTier);
+                const totalReturn = mach.totalReturn || calculateTotalReturn(mach.price, mach.classTier);
+                const classColor = '#00FF66';
+                return (
+                  <div key={idx} style={{ padding: '16px', backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: countdown.completed && !mach.claimed ? '2px solid #FFD700' : mach.claimed ? '1px solid #444' : '1px solid #222', borderRadius: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                      <div>
+                        <span style={{ fontWeight: 'bold', fontSize: '14px', color: isDarkMode ? '#fff' : '#212529' }}>{mach.name}</span>
+                        <span style={{ marginLeft: '8px', fontSize: '10px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '3px', backgroundColor: classColor + '22', color: classColor }}>CLASS {mach.classTier || 'A'}</span>
+                      </div>
+                      <span style={{ color: countdown.completed ? (mach.claimed ? '#666' : '#FFD700') : '#00FF66', fontSize: '12px', fontWeight: 'bold' }}>
+                        {mach.claimed ? '✅ Claimed' : countdown.completed ? '🎉 Complete!' : '🟢 Active'}
+                      </span>
+                    </div>
+                    {!mach.claimed && (
+                      <div style={{ width: '100%', height: '6px', backgroundColor: '#222', borderRadius: '3px', marginBottom: '10px', overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.min(countdown.progress || 0, 100)}%`, height: '100%', backgroundColor: countdown.completed ? '#FFD700' : classColor, borderRadius: '3px', transition: 'width 0.5s ease' }} />
+                      </div>
+                    )}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', fontSize: '12px' }}>
+                      <div><span style={{ color: '#666' }}>Cost</span><div style={{ color: isDarkMode ? '#fff' : '#212529', fontWeight: 'bold' }}>UGX {mach.price.toLocaleString()}</div></div>
+                      <div><span style={{ color: '#666' }}>Profit</span><div style={{ color: classColor, fontWeight: 'bold' }}>+UGX {profit.toLocaleString()}</div></div>
+                      <div><span style={{ color: '#666' }}>→ Balance</span><div style={{ color: '#00BCFF', fontWeight: 'bold' }}>UGX {totalReturn.toLocaleString()}</div></div>
+                    </div>
+                    {!mach.claimed && (
+                      <div style={{ marginTop: '10px', padding: '8px 12px', backgroundColor: isDarkMode ? '#111' : '#f1f3f5', borderRadius: '6px', textAlign: 'center', fontFamily: 'monospace', fontSize: '12px', color: isDarkMode ? '#fff' : '#212529' }}>
+                        {countdown.display}
+                      </div>
+                    )}
                   </div>
-                  <div style={{ textAlign: 'right', color: tx.type === 'Withdrawal' ? '#ff4444' : '#00FF66' }}>
-                    <strong>{tx.type === 'Withdrawal' ? '-' : '+'}{formatCurrency(tx.amount)}</strong>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {activeTab === 'deposits' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <h3 style={{ color: isDarkMode ? '#00FF66' : '#107C41', marginTop: 0 }}>PENDING DEPOSITS</h3>
-            {pendingDeposits.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>No pending deposits</div>
-            ) : (
-              pendingDeposits.map((dep, idx) => (
-                <div key={idx} style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '15px', borderRadius: '8px' }}>
-                  <p style={{ margin: '0 0 8px 0', fontWeight: 'bold' }}>Deposit {formatCurrency(dep.amount)}</p>
-                  <p style={{ margin: '0', fontSize: '12px', color: '#FFD700' }}>Status: Pending Verification</p>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-
-        {activeTab === 'withdrawals' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <h3 style={{ color: isDarkMode ? '#00FF66' : '#107C41', marginTop: 0 }}>PENDING WITHDRAWALS</h3>
-            {pendingWithdrawals.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>No pending withdrawals</div>
-            ) : (
-              pendingWithdrawals.map((wit, idx) => (
-                <div key={idx} style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '15px', borderRadius: '8px' }}>
-                  <p style={{ margin: '0 0 8px 0', fontWeight: 'bold' }}>Withdrawal {formatCurrency(wit.amount)}</p>
-                  <p style={{ margin: '0', fontSize: '12px', color: '#FFD700' }}>Status: Pending Approval</p>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         )}
@@ -224,82 +977,68 @@ function Home() {
         {activeTab === 'rewards' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ borderBottom: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', paddingBottom: '10px' }}>
-              <h3 style={{ color: isDarkMode ? '#00FF66' : '#107C41', margin: 0 }}>REFERRAL REWARDS & COMMISSIONS</h3>
-              <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: '12px' }}>Earn 20% commission on all referral deposits verified</p>
+              <h3 style={{ color: isDarkMode ? '#00FF66' : '#107C41', margin: 0 }}>REFERRAL REWARDS</h3>
+              <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: '12px' }}>Invite friends — rewards go to Wallet</p>
             </div>
 
-            {/* Commission Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-              <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '20px', borderRadius: '8px' }}>
-                <p style={{ margin: '0 0 10px 0', color: '#888', fontSize: '12px', fontWeight: 'bold' }}>TOTAL COMMISSIONS EARNED</p>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#FFD700' }}>{formatCurrency(referralCommissions)}</div>
+            <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', padding: '20px', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div>
+                <span style={{ fontSize: '12px', color: '#888', fontWeight: 'bold' }}>YOUR REFERRALS</span>
+                <div style={{ fontSize: '32px', fontWeight: 'bold', color: isDarkMode ? '#fff' : '#212529', marginTop: '5px' }}>{referrals}</div>
               </div>
-              <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '20px', borderRadius: '8px' }}>
-                <p style={{ margin: '0 0 10px 0', color: '#888', fontSize: '12px', fontWeight: 'bold' }}>ACTIVE REFERRALS</p>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#FF6B9D' }}>{referrals} users</div>
-              </div>
-            </div>
-
-            {/* Referral Link Section */}
-            <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '20px', borderRadius: '8px' }}>
-              <h4 style={{ margin: '0 0 15px 0', color: isDarkMode ? '#00FF66' : '#107C41' }}>YOUR REFERRAL LINK</h4>
-              <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
-                <input type="text" readOnly value={referralLink} style={{ padding: '12px', backgroundColor: isDarkMode ? '#111' : '#f1f3f5', color: isDarkMode ? '#aaa' : '#333', border: '1px solid #222', borderRadius: '6px', fontFamily: 'monospace', fontSize: '12px' }} />
-                <button onClick={copyToClipboard} style={{ backgroundColor: isDarkMode ? '#111' : '#e9ecef', color: isDarkMode ? '#00FF66' : '#107C41', border: '1px solid #222', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s' }}>
-                  📋 Copy Referral Link
-                </button>
-              </div>
-            </div>
-
-            {/* How It Works */}
-            <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '20px', borderRadius: '8px' }}>
-              <h4 style={{ margin: '0 0 15px 0', color: isDarkMode ? '#00FF66' : '#107C41' }}>HOW REFERRAL COMMISSIONS WORK</h4>
-              <ol style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', lineHeight: '1.8', color: '#ccc' }}>
-                <li>Share your referral link with friends</li>
-                <li>They sign up using your link and make a deposit</li>
-                <li>Deposit is verified by admin (Pending → Verified)</li>
-                <li>You automatically earn 20% commission on their deposit</li>
-                <li>Commission is added to your Wallet Balance</li>
-                <li>Withdraw commissions anytime to your account</li>
-              </ol>
-            </div>
-
-            {/* Referred Users */}
-            {referredUsers.length > 0 && (
-              <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', padding: '20px', borderRadius: '8px' }}>
-                <h4 style={{ margin: '0 0 15px 0', color: isDarkMode ? '#00FF66' : '#107C41' }}>YOUR REFERRALS ({referredUsers.length})</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {referredUsers.map((referral, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', backgroundColor: isDarkMode ? '#111' : '#f8f9fa', borderRadius: '6px', fontSize: '13px' }}>
-                      <div>
-                        <strong>{referral.username}</strong>
-                        <p style={{ margin: '2px 0 0 0', color: '#888' }}>Joined: {new Date(referral.joinedAt).toLocaleDateString()}</p>
-                      </div>
-                      <div style={{ textAlign: 'right', color: '#00FF66' }}>
-                        <strong>Commission: {formatCurrency(referral.commissionEarned || 0)}</strong>
-                        <p style={{ margin: '2px 0 0 0', color: referral.depositsVerified ? '#00FF66' : '#FFD700', fontSize: '11px' }}>
-                          {referral.depositsVerified ? '✓ Deposits Verified' : '⏳ Pending Verification'}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <input type="text" readOnly value={referralLink} style={{ padding: '12px', backgroundColor: isDarkMode ? '#111' : '#f1f3f5', color: isDarkMode ? '#aaa' : '#333', border: '1px solid #222', borderRadius: '6px' }} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <button onClick={copyToClipboard} style={{ backgroundColor: isDarkMode ? '#111' : '#e9ecef', color: isDarkMode ? '#00FF66' : '#107C41', border: '1px solid #222', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Copy Link</button>
+                  <button onClick={shareOnWhatsApp} style={{ backgroundColor: '#25D366', color: '#fff', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>WhatsApp</button>
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* Share Tips */}
-            <div style={{ backgroundColor: 'rgba(0, 255, 102, 0.1)', border: '1px solid #00FF66', padding: '20px', borderRadius: '8px' }}>
-              <h4 style={{ margin: '0 0 10px 0', color: '#00FF66' }}>💡 SHARING TIPS</h4>
-              <ul style={{ margin: '0', paddingLeft: '20px', fontSize: '13px', lineHeight: '1.8', color: '#ccc' }}>
-                <li>Share on social media (WhatsApp, Telegram, Twitter)</li>
-                <li>The more referrals who verify deposits, the more commissions you earn</li>
-                <li>Your referrals can also refer others - everyone benefits!</li>
-                <li>Commission is automatic - no manual claims needed</li>
-              </ul>
+            <div style={{ backgroundColor: isDarkMode ? '#0a0a0a' : '#fff', border: isDarkMode ? '1px solid #111' : '1px solid #dee2e6', padding: '20px', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontSize: '12px', color: '#888', fontWeight: 'bold' }}>COMMISSION RATE</span>
+                <span style={{ color: '#FFD700', fontWeight: 'bold' }}>20%</span>
+              </div>
+              <p style={{ margin: 0, color: '#aaa', fontSize: '13px' }}>Earn 20% from every verified deposit by a person who joined through your invite link.</p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <h4 style={{ color: '#aaa', margin: '5px 0', fontSize: '13px', fontWeight: 'bold' }}>MILESTONES</h4>
+              {rewardsRoadmap.map((roadmap) => {
+                const isClaimed = claimedList.includes(roadmap.target);
+                const canClaim = referrals >= roadmap.target && !isClaimed;
+                return (
+                  <div key={roadmap.target} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', backgroundColor: isDarkMode ? '#111' : '#fff', border: isDarkMode ? '1px solid #222' : '1px solid #dee2e6', borderRadius: '8px' }}>
+                    <div style={{ width: '70%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', backgroundColor: roadmap.type === 'Cash' ? '#2563eb' : '#db2777', color: '#fff' }}>{roadmap.type}</span>
+                        <strong style={{ color: isDarkMode ? '#fff' : '#212529', fontSize: '14px' }}>{roadmap.reward}</strong>
+                      </div>
+                      <p style={{ margin: '5px 0 0 0', color: '#666', fontSize: '11px' }}>{roadmap.desc}</p>
+                      <span style={{ fontSize: '11px', color: referrals >= roadmap.target ? '#00FF66' : '#ff4444', fontWeight: 'bold', display: 'block', marginTop: '4px' }}>{referrals}/{roadmap.target}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <button disabled={!canClaim} onClick={() => handleClaimReward(roadmap.target)} style={{ padding: '8px 12px', borderRadius: '4px', border: 'none', fontSize: '11px', fontWeight: 'bold', cursor: canClaim ? 'pointer' : 'not-allowed', backgroundColor: isClaimed ? '#333' : (canClaim ? '#00FF66' : '#111'), color: isClaimed ? '#fff' : (canClaim ? '#000' : '#666') }}>
+                        {isClaimed ? '✓ Done' : canClaim ? 'Claim' : 'Locked'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
       </div>
+
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: '70px', backgroundColor: isDarkMode ? '#0a0a0a' : '#ffffff', borderTop: isDarkMode ? '1px solid #111' : '1px solid #dfe3e8', display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '8px 0', zIndex: 500 }}>
+        <button onClick={() => setActiveTab('home')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: activeTab === 'home' ? '#00FF66' : '#666', fontSize: '12px', cursor: 'pointer' }}>🏠<span>Home</span></button>
+        <button onClick={() => setActiveTab('buy')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: activeTab === 'buy' ? '#00FF66' : '#666', fontSize: '12px', cursor: 'pointer' }}>⚙️<span>Buy</span></button>
+        <button onClick={() => setActiveTab('activity')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: activeTab === 'activity' ? '#00FF66' : '#666', fontSize: '12px', cursor: 'pointer' }}>📊<span>Activity</span></button>
+        <button onClick={() => setActiveTab('rewards')} style={{ background: 'none', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', color: activeTab === 'rewards' ? '#00FF66' : '#666', fontSize: '12px', cursor: 'pointer' }}>🎁<span>Rewards</span></button>
+      </div>
+
+      <style>{`@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }`}</style>
     </div>
   );
 }
