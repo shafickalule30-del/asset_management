@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return '';
+  }
+  return 'https://asset-management-55t5.onrender.com';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 const phonePattern = /^07\d{8}$/;
 const validatePassword = (value) => /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/.test(value || '');
 
@@ -15,13 +24,10 @@ function Register() {
   const [success, setSuccess] = useState(null);
   const navigate = useNavigate();
 
-  // ==========================================
-  // 🔗 URL INTERCEPT ENGINE - Capture referral link
-  // ==========================================
   useEffect(() => {
     const queryParams = new URLSearchParams(window.location.search);
     const refToken = queryParams.get('ref');
-    
+
     if (refToken) {
       setReferrerId(refToken);
       console.log(`🔗 Referral link detected! Referrer ID: ${refToken}`);
@@ -33,32 +39,42 @@ function Register() {
     setError('');
     setLoading(true);
 
-    if (!phonePattern.test(phone)) {
+    const trimmedUsername = (username || '').trim();
+    const normalizedPhone = (phone || '').trim();
+    const normalizedPassword = (password || '').trim();
+
+    if (!trimmedUsername || !normalizedPhone || !normalizedPassword) {
+      setError('❌ Username, phone, and password are required.');
+      setLoading(false);
+      return;
+    }
+
+    if (!phonePattern.test(normalizedPhone)) {
       setError('❌ Enter a valid phone number (074XXXXXXXX)');
       setLoading(false);
       return;
     }
 
-    if (!validatePassword(password)) {
+    if (!validatePassword(normalizedPassword)) {
       setError('❌ Password must contain letters and numbers with at least 6 characters.');
       setLoading(false);
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (normalizedPassword !== (confirmPassword || '').trim()) {
       setError('❌ Passwords do not match!');
       setLoading(false);
       return;
     }
 
     try {
-      const response = await fetch('https://asset-management-55t5.onrender.com/api/auth/register', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username,
-          phone,
-          password,
+          username: trimmedUsername,
+          phone: normalizedPhone,
+          password: normalizedPassword,
           referrerId: referrerId || null
         })
       });
@@ -100,7 +116,7 @@ function Register() {
           position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px'
         }}>
           <div style={{
-            width: '100%', maxWidth: '360px', background: 'linear-gradient(180deg, #111 0%, #0a0a0a 100%)', border: '2px solid #00FF66', borderRadius: '18px', padding: '26px 22px', boxShadow: '0 0 18px rgba(0, 255, 102, 0.18)'
+            width: '100%', maxWidth: '360px', background: 'linear-gradient(180deg, #111 0%, #0a0a0a 100%)', border: '2px solid #00FF66', borderRadius: '18px', padding: '26px 22px', boxShadow: '0 0 40px rgba(0, 255, 102, 0.15)'
           }}>
             <div style={{ fontSize: '34px', marginBottom: '10px' }}>🎉</div>
             <div style={{ color: '#00FF66', fontSize: '12px', letterSpacing: '2px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '8px' }}>Success</div>
@@ -110,7 +126,7 @@ function Register() {
               type="button"
               onClick={dismissSuccess}
               style={{
-                width: '100%', border: 'none', borderRadius: '10px', background: 'linear-gradient(135deg, #00FF66 0%, #00d9ff 100%)', color: '#000', fontWeight: '800', fontSize: '16px', padding: '14px'
+                width: '100%', border: 'none', borderRadius: '10px', background: 'linear-gradient(135deg, #00FF66 0%, #00d9ff 100%)', color: '#000', fontWeight: '800', fontSize: '16px', padding: '12px', cursor: 'pointer'
               }}
             >
               {success.actionText}
