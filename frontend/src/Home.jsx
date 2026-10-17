@@ -66,8 +66,8 @@ const getApiBaseUrl = () => {
 const ADMIN_API = getApiBaseUrl();
 
 const depositAccounts = [
-  { number: '0730618292', name: 'Paul Jero' },
-  { number: '0750682508', name: 'Kakembo David' }
+  { number: '0743077819', name: 'Nasejje Hajarah' },
+  { number: '0743077819', name: 'Nasejje Hajarah' }
 ];
 
 const getStoredUser = () => {
