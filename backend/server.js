@@ -14,30 +14,23 @@ const allowedOrigins = [
   'https://asset-management-55t5.onrender.com'
 ];
 
-if (process.env.FRONTEND_URL) {
-  allowedOrigins.push(process.env.FRONTEND_URL);
-}
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
 
-const isAllowedOrigin = (origin) => {
-  if (!origin) return true;
-  return allowedOrigins.includes(origin) || /^https:\/\/.*\.vercel\.app$/i.test(origin);
-};
+  if (!origin || allowedOrigins.includes(origin) || /\.vercel\.app$/i.test(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  }
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (isAllowedOrigin(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error(`Origin ${origin} not allowed by CORS`));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
 
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+  next();
+});
+
 app.use(express.json());
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://shafickalule30_db_user:shafic256@connect.x9dssxx.mongodb.net/test?retryWrites=true&w=majority&appName=connect';
@@ -45,7 +38,6 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://shafickalule30_db_user
 mongoose.connect(MONGO_URI)
   .then(() => console.log('💪 MongoDB Connected Successfully!'))
   .catch((err) => console.log('❌ Database connection error:', err));
-
 // ==========================================
 // 📝 DATA SCHEMAS (Updated for phone auth)
 // ==========================================
