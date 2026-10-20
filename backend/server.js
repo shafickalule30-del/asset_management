@@ -1,24 +1,16 @@
-const PORT = Number(process.env.PORT) || 5000;
-
-const server = app.listen(PORT, '0.0.0.0', () =>
-  console.log(`🚀 API Fleet Engine active on port ${PORT}`)
-);
-
-// Prevent a crash from killing the whole service on Render
-server.on('error', (err) => {
-  console.error('❌ Server error:', err);
-});
-
-process.on('uncaughtException', (err) => console.error('❌ Uncaught exception:', err));
-process.on('unhandledRejection', (err) => console.error('❌ Unhandled rejection:', err));
 require('dotenv').config();
 
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
 
 const app = express();
 
+// Render routes through a proxy — required for correct client IPs/HTTPS detection
+app.set('trust proxy', 1);
+
+// ==========================================
+// 🌐 CORS (allows all Vercel preview/prod domains)
+// ==========================================
 const allowedOrigins = [
   'http://localhost:5173',
   'http://127.0.0.1:5173',
@@ -45,6 +37,10 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+
+// ==========================================
+// ✅ HEALTH CHECK (Render + keep-alive monitors)
+// ==========================================
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     ok: true,
@@ -52,19 +48,26 @@ app.get('/api/health', (req, res) => {
     time: new Date().toISOString()
   });
 });
-const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://shafickalule30_db_user:shafic256@connect.x9dssxx.mongodb.net/test?retryWrites=true&w=majority&appName=connect';
 
-mongoose.connect(MONGO_URI, {
+// ==========================================
+// 🗄️ DATABASE CONNECTION (set MONGO_URI in Render env vars!)
+// ==========================================
+const MONGO_URI = process.env.MONGO_URI;
+
+if (!MONGO_URI) {
+  console.error('❌ MONGO_URI is not set. Add it in the Render dashboard → Environment.');
+}
+
+mongoose.connect(MONGO_URI || '', {
   serverSelectionTimeoutMS: 10000,
-  socketTimeoutMS: 45000,
+  socketTimeoutMS: 45000
 })
   .then(() => console.log('💪 MongoDB Connected Successfully!'))
   .catch((err) => console.error('❌ Database connection error:', err.message));
 
-mongoose.connection.on('disconnected', () => console.error('⚠️ Mongo disconnected — retrying...'));
+mongoose.connection.on('disconnected', () => console.error('⚠️ Mongo disconnected — auto-retry in progress...'));
 mongoose.connection.on('reconnected', () => console.log('🔄 Mongo reconnected'));
-  .then(() => console.log('💪 MongoDB Connected Successfully!'))
-  .catch((err) => console.log('❌ Database connection error:', err));
+
 // ==========================================
 // 📝 DATA SCHEMAS (Updated for phone auth)
 // ==========================================
@@ -605,10 +608,31 @@ app.post('/api/sms-webhook', async (req, res) => {
   }
 });
 
+// ==========================================
+// 🚫 404 + global error handler (must be last)
+// ==========================================
+app.use((req, res) => {
+  res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });
+});
+
+app.use((err, req, res, next) => {
+  console.error('❌ Unhandled error:', err.message);
+  res.status(500).json({ message: 'Internal server error' });
+});
+
+// ==========================================
+// 🚀 SERVER STARTUP (single, resilient)
+// ==========================================
 const PORT = Number(process.env.PORT) || 5000;
-if (require.main === module) {
-  app.listen(PORT, () => console.log(`🚀 API Fleet Engine active on port ${PORT}`));
-}
+
+const server = app.listen(PORT, '0.0.0.0', () =>
+  console.log(`🚀 API Fleet Engine active on port ${PORT}`)
+);
+
+server.on('error', (err) => console.error('❌ Server error:', err));
+
+process.on('uncaughtException', (err) => console.error('❌ Uncaught exception:', err));
+process.on('unhandledRejection', (err) => console.error('❌ Unhandled rejection:', err));
 
 module.exports = {
   app,
